@@ -1766,7 +1766,7 @@ def methods_page() -> None:
         st.latex(r"Y(x)=b+(a-b)\frac{x^c}{h^c+x^c}")
         st.write(
             "Here b is response at zero spend, a is the saturation response, h is half-saturation spend, and c "
-            "controls shape. This is the course ADBUDG form with d = hᶜ, which makes the scale parameter easier to explain."
+            "controls shape. This is Little's ADBUDG response form written with d = hᶜ, which makes the scale parameter easier to explain."
         )
         st.latex(r"\pi(\mathbf{x})=m\left[Y_0+\sum_j Y_j(x_j)\right]-\sum_j x_j")
         st.write("The symbol m here is contribution margin per response unit—not market size. Y₀ is constant base response.")
@@ -1814,14 +1814,14 @@ def methods_page() -> None:
             - Uploaded data remain in the local Python process in local mode. A hosted deployment creates a different trust boundary.
             """
         )
-        with st.expander("Method references and course lineage"):
+        with st.expander("Method references and implementation notes"):
             st.markdown(
                 """
                 - Little, J. D. C. (1970). *Models and managers: The concept of a decision calculus*. Management Science.
                 - Hausman, J. A. (1978). *Specification tests in econometrics*. Econometrica.
                 - Wooldridge, J. M. *Econometric Analysis of Cross Section and Panel Data*.
-                - The workflow follows the course sequence: baseline → unconstrained sizing → constrained allocation →
-                  strategy, with zero/base/increased/saturation calibration anchors and post-implementation monitoring.
+                - The workflow runs baseline → unconstrained sizing → constrained allocation → strategy, with
+                  zero/base/increased/saturation calibration anchors and post-implementation monitoring.
 
                 Full implementation notes and data conventions are in `docs/methods.md` and `docs/data_guide.md`.
                 """
