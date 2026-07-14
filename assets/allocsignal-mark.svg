@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AllocSignal mark">
+  <rect width="128" height="128" rx="30" fill="#173C3A"/>
+  <path d="M18 101C35 101 38 91 45 75C54 53 68 38 108 30" fill="none" stroke="#83D2B4" stroke-width="8" stroke-linecap="round"/>
+  <path d="M27 101V87M52 101V70M77 101V52" fill="none" stroke="#F8F5ED" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="103" cy="31" r="10" fill="#D95B40"/>
+  <circle cx="77" cy="51" r="6" fill="#F2C66D"/>
+</svg>

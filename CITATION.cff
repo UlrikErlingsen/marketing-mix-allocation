@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If AllocSignal supports your research or teaching, please cite this software and the original sources for the methods you use."
+title: "AllocSignal: Open Marketing Response and Resource Allocation"
+type: software
+authors:
+  - family-names: "Erlingsen"
+    given-names: "Ulrik"
+    alias: "UlrikErlingsen"
+version: 1.0.0
+date-released: 2026-07-14
+license: AGPL-3.0-or-later
+repository-code: "https://github.com/UlrikErlingsen/marketing-mix-allocation"
+url: "https://github.com/UlrikErlingsen/marketing-mix-allocation"
+keywords:
+  - marketing mix
+  - resource allocation
+  - response curves
+  - ADBUDG
+  - panel regression
+  - fixed effects
+  - marketing analytics

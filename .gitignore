@@ -1,0 +1,27 @@
+# Operating-system files
+.DS_Store
+
+# Python bytecode and build products
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+
+# Test, coverage, and lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Streamlit secrets (config.toml is intentionally committed)
+.streamlit/secrets.toml
+
+# Generated exports and local tooling
+outputs/
+.claude/
+.idea/
+.vscode/

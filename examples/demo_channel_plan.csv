@@ -1,0 +1,7 @@
+channel,current_spend,min_spend,max_spend,floor_response,ceiling_response,half_saturation,shape,long_run_multiplier,fixed
+Paid search,140000,50000,260000,0,920000,150000,1.25,1.05,false
+Online video,110000,40000,220000,0,720000,135000,1.6,1.12,false
+Retail media,90000,35000,170000,0,480000,90000,1.1,1.03,false
+Out of home,80000,70000,130000,0,350000,120000,1.8,1.15,true
+CRM,45000,20000,100000,0,240000,45000,0.85,1.25,false
+Field marketing,125000,90000,180000,0,520000,140000,1.45,1.1,false
