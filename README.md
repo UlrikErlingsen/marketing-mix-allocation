@@ -163,6 +163,7 @@ These apps share a visual language but answer different questions:
 - **[AdoptSignal](https://github.com/UlrikErlingsen/adoption-forecasting)** asks when a new product gets adopted.
 - **[PositionSignal](https://github.com/UlrikErlingsen/brand-positioning)** asks where brands sit relative to competitors.
 - **[DriverSignal](https://github.com/UlrikErlingsen/survey-driver-analysis)** asks which measured experiences move with satisfaction or recommendation scores.
+- **[GateSignal](https://github.com/UlrikErlingsen/launch-decision-gate)** asks whether a concept should receive the next bounded investment.
 - **AllocSignal** asks where the next marketing budget should go, given response assumptions, economics, and constraints.
 
 AllocSignal uses a contribution margin, but it is not a customer-lifetime-value model. WorthSignal can supply better unit economics; AllocSignal then applies them to a channel-allocation decision.
