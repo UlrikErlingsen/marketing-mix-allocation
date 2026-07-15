@@ -122,6 +122,10 @@ docker run --rm -p 8593:8593 allocsignal
 
 Then open `http://127.0.0.1:8593`. The container runs the app as a non-root user. This repository does not promise a hosted public instance.
 
+## No install? Give this file to an AI
+
+Don't want to install anything? [AI_ANALYST.md](AI_ANALYST.md) is a single copy-paste file that turns a capable AI assistant (Claude, ChatGPT, Gemini, …) into this analysis. Copy the file into a chat, add your data, and the AI follows the same published methods and honesty rules as the app. The app is still the more private option: local mode keeps your data on your computer, while a cloud AI sees whatever you paste.
+
 ## Tests and development checks
 
 ```bash
