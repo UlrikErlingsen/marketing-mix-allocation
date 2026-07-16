@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from allocsignal import __version__
 from allocsignal.allocation import evaluate_allocation, optimize_fixed_budget, optimize_profit
+from allocsignal.digital import AttributionConfig, DigitalRoles, audit_attribution, evaluate_digital_economics
 from allocsignal.errors import DataProblem, friendly_message
 from allocsignal.io import load_data, results_to_excel, results_to_json, tables_to_csv_zip
 from allocsignal.panel import analyze_panel
@@ -43,7 +44,8 @@ PAGES = [
     "1 · Curves & assumptions",
     "2 · Allocate & stress-test",
     "3 · Panel evidence",
-    "4 · Decision & export",
+    "4 · Digital economics & attribution",
+    "5 · Decision & export",
     "Methods & limits",
 ]
 COLORS = {
@@ -220,8 +222,8 @@ def masthead() -> None:
 
 def footer() -> None:
     st.markdown(
-        f"<div class='ms-footer'>AllocSignal {__version__}<span>•</span>Decision support, not autopilot"
-        "<span>•</span>AGPL-3.0-or-later</div>",
+        f"<div class='ms-footer'>AllocSignal v{__version__}<span>◆</span>Decision support, not autopilot"
+        "<span>◆</span>Part of the Signal suite<span>◆</span>AGPL-3.0-or-later</div>",
         unsafe_allow_html=True,
     )
 
@@ -309,6 +311,11 @@ for key, default in (
     ("panel_prepared", None),
     ("panel_roles", None),
     ("panel_analysis", None),
+    ("digital_raw", None),
+    ("digital_source", None),
+    ("digital_fingerprint", None),
+    ("digital_result", None),
+    ("attribution_audit", None),
 ):
     st.session_state.setdefault(key, default)
 
@@ -1137,6 +1144,157 @@ def panel_page() -> None:
             full_width(st.dataframe, analysis.hausman.details, hide_index=True)
 
 
+def digital_page() -> None:
+    st.title("Digital unit economics & attribution audit")
+    st.write(
+        "Translate impressions, clicks, conversions, spend, and contribution margin into a transparent funnel. "
+        "Then audit what the selected attribution rule can—and cannot—support."
+    )
+    st.warning(
+        "Observed or attributed conversions are not incremental conversions. Positive observed contribution can coexist "
+        "with zero or negative causal lift when targeting, selection, or measurement credit is misleading."
+    )
+    controls = st.columns(2)
+    if controls[0].button("Load fictional digital campaign", key="load_digital_demo"):
+        path = ROOT / "examples" / "demo_digital_economics.csv"
+        frame = pd.read_csv(path)
+        st.session_state["digital_raw"] = frame
+        st.session_state["digital_source"] = path.name
+        st.session_state["digital_fingerprint"] = _fingerprint(path.read_bytes())
+        st.session_state["digital_result"] = None
+        st.session_state["attribution_audit"] = None
+    upload = controls[1].file_uploader(
+        "Upload campaign or keyword table", type=["csv", "xlsx", "xls", "xlsm", "json"], key="digital_upload"
+    )
+    if upload is not None:
+        raw = upload.getvalue()
+        fingerprint = _fingerprint(raw)
+        if st.session_state.get("digital_upload_seen") != fingerprint:
+            try:
+                loaded = load_data(raw, name=upload.name)
+                st.session_state["digital_raw"] = next(iter(loaded.tables.values()))
+                st.session_state["digital_source"] = loaded.source_name
+                st.session_state["digital_fingerprint"] = fingerprint
+                st.session_state["digital_upload_seen"] = fingerprint
+                st.session_state["digital_result"] = None
+                st.session_state["attribution_audit"] = None
+            except Exception as exc:
+                show_error(exc)
+    frame = st.session_state.get("digital_raw")
+    if frame is None:
+        st.info("Load the fictional campaign or upload a table to begin.")
+        template = ROOT / "examples" / "demo_digital_economics.csv"
+        full_width(
+            st.download_button, "Download digital economics template", template.read_bytes(),
+            "allocsignal_digital_economics_template.csv", "text/csv",
+        )
+        return
+    st.caption(f"{st.session_state.get('digital_source')} · {len(frame):,} rows")
+    full_width(st.dataframe, frame.head(20), hide_index=True)
+    columns = [str(column) for column in frame.columns]
+    optional = ["(none)", *columns]
+    r1, r2, r3, r4 = st.columns(4)
+    label = r1.selectbox("Channel / campaign", columns, index=columns.index(infer_column(columns, ("channel", "campaign", "source"))))
+    impressions = r2.selectbox("Impressions", columns, index=columns.index(infer_column(columns, ("impression", "reach"))))
+    clicks = r3.selectbox("Clicks", columns, index=columns.index(infer_column(columns, ("click",))))
+    conversions = r4.selectbox("Tracked conversions", columns, index=columns.index(infer_column(columns, ("conversion", "order", "sale"))))
+    r5, r6, r7, r8 = st.columns(4)
+    spend = r5.selectbox("Spend", columns, index=columns.index(infer_column(columns, ("spend", "cost"))))
+    margin_guess = next((column for column in columns if any(token in column.casefold() for token in ("margin_per", "contribution_margin", "margin"))), None)
+    margin_column = r6.selectbox(
+        "Margin per conversion", optional,
+        index=optional.index(margin_guess) if margin_guess else 0,
+    )
+    platform_guess = next((column for column in columns if any(token in column.casefold() for token in ("platform_conversion", "reported_conversion"))), None)
+    platform_column = r7.selectbox(
+        "Platform conversions · optional", optional,
+        index=optional.index(platform_guess) if platform_guess else 0,
+    )
+    keyword_guess = next((column for column in columns if any(token in column.casefold() for token in ("keyword", "query", "term"))), None)
+    keyword_column = r8.selectbox(
+        "Keyword · optional", optional,
+        index=optional.index(keyword_guess) if keyword_guess else 0,
+    )
+    assumptions = st.columns(3)
+    default_margin = assumptions[0].number_input(
+        "Default contribution margin per conversion", min_value=0.0, value=35.0, step=1.0,
+        disabled=margin_column != "(none)",
+    )
+    allow_view = assumptions[1].checkbox("Allow conversions above clicks · view-through")
+    method = assumptions[2].selectbox(
+        "Attribution method",
+        ["Last click", "First click", "Linear touch", "Position based", "Platform reported", "Markov removal"],
+    )
+    st.markdown("#### Attribution assumptions")
+    a1, a2, a3, a4 = st.columns(4)
+    identity_coverage = a1.slider("Linkable journey coverage", 0, 100, 72, 1) / 100
+    lookback_days = a2.number_input("Lookback days", min_value=1, max_value=365, value=30)
+    includes_view = a3.checkbox("Includes view-through credit", value=allow_view)
+    cross_device = a4.checkbox("Cross-device linkage used")
+    a5, a6, a7 = st.columns(3)
+    experiment_calibrated = a5.checkbox("Calibrated against randomized lift evidence")
+    long_term = a6.checkbox("Long-term effects explicitly included")
+    redistribution = None
+    if method == "Markov removal":
+        removal = a7.selectbox("Removed traffic assumption", ["Undeclared", "Sent to no-conversion", "Redistributed"])
+        redistribution = True if removal == "Redistributed" else False if removal == "Sent to no-conversion" else None
+    if st.button("Calculate economics & audit attribution", type="primary", key="run_digital"):
+        try:
+            result = evaluate_digital_economics(
+                frame,
+                DigitalRoles(
+                    label=label, impressions=impressions, clicks=clicks, conversions=conversions, spend=spend,
+                    contribution_margin=None if margin_column == "(none)" else margin_column,
+                    platform_conversions=None if platform_column == "(none)" else platform_column,
+                    keyword=None if keyword_column == "(none)" else keyword_column,
+                    default_margin=float(default_margin), allow_view_through=allow_view,
+                ),
+            )
+            attribution = audit_attribution(
+                AttributionConfig(
+                    method=method, identity_coverage=float(identity_coverage), lookback_days=int(lookback_days),
+                    includes_view_through=includes_view, cross_device_linked=cross_device,
+                    experiment_calibrated=experiment_calibrated, long_term_effects_included=long_term,
+                    removal_redistributes_traffic=redistribution,
+                )
+            )
+            st.session_state["digital_result"] = result
+            st.session_state["attribution_audit"] = attribution
+        except Exception as exc:
+            show_error(exc)
+    result = st.session_state.get("digital_result")
+    attribution = st.session_state.get("attribution_audit")
+    if result is None or attribution is None:
+        return
+    totals = result.totals.iloc[0]
+    metrics = st.columns(6)
+    metrics[0].metric("CTR", f"{float(totals['ctr']):.2%}" if pd.notna(totals["ctr"]) else "n/a")
+    metrics[1].metric("CVR", f"{float(totals['cvr']):.2%}" if pd.notna(totals["cvr"]) else "n/a")
+    metrics[2].metric("CPC", f"{float(totals['cpc']):,.2f}" if pd.notna(totals["cpc"]) else "n/a")
+    metrics[3].metric("CPA", f"{float(totals['cpa']):,.2f}" if pd.notna(totals["cpa"]) else "n/a")
+    metrics[4].metric("Net contribution", f"{float(totals['net_contribution']):,.0f}")
+    coverage = totals["tracking_coverage"]
+    metrics[5].metric("Tracking coverage", f"{float(coverage):.1%}" if pd.notna(coverage) else "not declared")
+    for warning in result.warnings:
+        st.warning(warning)
+    st.markdown("#### Campaign and keyword economics")
+    full_width(st.dataframe, result.rows.round(4), hide_index=True)
+    st.caption("Break-even CPC = observed CVR × contribution margin. Break-even CPA = contribution margin per conversion.")
+    st.markdown("#### Attribution assumption audit")
+    full_width(st.dataframe, attribution, hide_index=True)
+    tables = {"Digital totals": result.totals, "Digital rows": result.rows, "Attribution audit": attribution}
+    metadata = {
+        "source": st.session_state.get("digital_source"),
+        "source_sha256": st.session_state.get("digital_fingerprint"),
+        "attribution_method": method,
+        "causal_status": "descriptive observed economics; no incremental lift claim",
+    }
+    d1, d2, d3 = st.columns(3)
+    d1.download_button("Download Excel evidence", results_to_excel(tables), "allocsignal-digital-evidence.xlsx")
+    d2.download_button("Download JSON evidence", results_to_json(tables, metadata), "allocsignal-digital-evidence.json")
+    d3.download_button("Download CSV bundle", tables_to_csv_zip(tables), "allocsignal-digital-evidence.zip")
+
+
 def _named_allocation_results(allocation: dict[str, object]) -> list[tuple[str, object]]:
     named = [
         ("Current baseline", allocation["baseline"]),
@@ -1836,7 +1994,9 @@ elif page == "2 · Allocate & stress-test":
     allocation_page()
 elif page == "3 · Panel evidence":
     panel_page()
-elif page == "4 · Decision & export":
+elif page == "4 · Digital economics & attribution":
+    digital_page()
+elif page == "5 · Decision & export":
     decision_page()
 else:
     methods_page()

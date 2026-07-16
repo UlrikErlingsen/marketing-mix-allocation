@@ -33,6 +33,7 @@ Before any computation, ask for and confirm:
 4. **Where the response assumptions come from.** Experiments, quasi-experiments, historical models, published analogies, or managerial judgment? Label judgmental anchors as assumptions, not estimates.
 5. **Constraints.** Total budget (for fixed-budget reallocation), per-channel minima and maxima, and any fixed commitments.
 6. **Panel history (optional).** Do they have repeated entity-by-period observations (regions, stores, accounts) with outcome and spend columns? If yes, offer Part 3 to check whether history supports the assumed effects.
+7. **Digital delivery data (optional).** If they want a planning or tracking audit, ask for one row per campaign, source, platform, or keyword with `impressions`, `clicks`, `conversions`, `spend`, and `contribution_per_conversion`; `platform_conversions` is optional. Also ask how conversions, view-throughs, cross-device activity, and lookback windows are defined.
 
 If curve parameters are missing, offer to calibrate them from anchor points (Part 1). Do not invent parameters silently.
 
@@ -126,6 +127,40 @@ compared with a chi-squared distribution. Compute it from conventional **model-b
 
 **What the panel can and cannot establish.** It can show whether the same unit, spending more than its own average, tended to see more of the outcome — structured evidence checking. It cannot, by itself, deliver a causal response curve. A panel coefficient does not become an allocation curve without additional assumptions and, ideally, experimental evidence. Never silently feed a panel `β` into Part 1; if the user wants to use it as a calibration anchor, state that this is an explicit analyst judgment and record it.
 
+### Part 4: digital economics and attribution audit (optional)
+
+Use this section for planning arithmetic and measurement-quality checks. It is not an incremental-lift model. Preserve the user's unit of analysis—campaign, source, platform, or keyword—and never add rows with incompatible time windows or conversion definitions.
+
+For each row, compute only when its denominator is positive:
+
+```
+CTR = clicks / impressions
+CVR = conversions / clicks
+CPM = 1000 * spend / impressions
+CPC = spend / clicks
+CPA = spend / conversions
+gross contribution = conversions * contribution_per_conversion
+net contribution = gross contribution - spend
+contribution ROAS = gross contribution / spend
+break-even CPA = contribution_per_conversion
+break-even CPC = CVR * contribution_per_conversion
+```
+
+Treat undefined ratios as missing, not zero. Flag impossible funnel relationships (`clicks > impressions`, `conversions > clicks` unless the user's conversion definition permits multiple conversions per click), negative inputs, mixed currencies, and mixed horizons. Contribution per conversion must be contribution after variable cost, not revenue, unless the user explicitly accepts revenue ROAS as a different metric.
+
+When `platform_conversions` is supplied, report tracking coverage as `conversions / platform_conversions` and the absolute reconciliation gap. Label it a reconciliation indicator, not the platform's accuracy rate: a gap may reflect consent loss, attribution windows, view-through credit, cross-device matching, deduplication, or different conversion definitions. Coverage above 100% is possible and requires reconciliation rather than silent clipping.
+
+Run an explicit attribution audit and record:
+
+- attribution method and whether credit is single-touch, rules-based multi-touch, algorithmic, or experimentally calibrated;
+- conversion definition, identity coverage, consent coverage, deduplication, lookback window, view-through inclusion, and cross-device handling;
+- whether platform-reported outcomes reconcile with the independent source of truth;
+- whether experiments or credible quasi-experiments calibrate reported credit;
+- whether delayed and long-run effects are represented;
+- for Markov/removal-effect models, whether removed credit is transparently redistributed and whether the result is stable to path and window choices.
+
+Always describe retrospective attribution as **descriptive and non-causal**. It distributes observed credit under a rule or fitted path model; it does not identify what would have happened without the touchpoint. Do not convert attributed conversions directly into budget changes. Use experiments, credible quasi-experiments, or carefully qualified response models for incremental allocation decisions.
+
 ### Diagnostics and honesty checks
 
 Run and report these before presenting any recommendation:
@@ -136,6 +171,7 @@ Run and report these before presenting any recommendation:
 - **Shape warning:** flag every channel with `c > 1` (non-concave; local optima are possible) and `c < 1` (unbounded slope near zero).
 - **Panel diagnostics (if used):** entities and periods per entity, unique keys, within and between standard deviations per predictor, predictor correlations and condition number, residual patterns, influential entities, serial dependence, time trends. Consider time fixed effects for common shocks; note they do not solve endogeneity, and lagging spend changes timing, not identification.
 - **Cluster count:** with few entities, cluster-robust standard errors are themselves unreliable; say so rather than presenting them as exact.
+- **Digital-data audit (if used):** denominator validity, funnel-order warnings, unit/currency/horizon consistency, tracking coverage and reconciliation gap, attribution method, window, identity and consent coverage, view-through and cross-device treatment, experimental calibration, and long-run omissions.
 
 ### How to present results
 
@@ -145,6 +181,7 @@ Run and report these before presenting any recommendation:
 - Present sensitivity as a small table of low/base/high cases and say explicitly whether the recommendation survives.
 - Keep the assumptions visible: curve source per channel, margin, multiplier, and constraint list belong in the summary, not a footnote.
 - Preserve a reproducible record: the inputs, assumptions, constraints, code, solver notes, warnings, and (if used) panel settings and estimates, so the analysis can be rerun and audited.
+- If digital delivery data are used, present the funnel/economics table separately from any causal evidence and put the attribution-audit findings beside it. Never title attributed conversions "incremental conversions" without an identification design.
 - The strategic decision belongs to the analyst and decision owner, not the optimizer — end with a recommended next step, preferably a holdout or staged test before full implementation.
 
 ### Caveats you must always state

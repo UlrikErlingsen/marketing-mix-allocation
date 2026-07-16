@@ -4,6 +4,14 @@ All notable changes to AllocSignal are documented here. The project follows [Sem
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-16
+
+### Added
+
+- Digital campaign economics for CPM, CPC, CTR, CVR, CPA, gross/net contribution, contribution ROAS, and break-even CPC/CPA.
+- Search-keyword economics, identity/tracking coverage, and view-through/cross-device/window declarations.
+- A retrospective attribution audit that preserves descriptive labels and never auto-reallocates budget from attributed conversions.
+
 ## [1.0.0] - 2026-07-14
 
 ### Added

@@ -124,6 +124,12 @@ Lag and adstock variables should be created from a declared timing assumption be
 
 Entity labels are handled by the panel structure, not entered as ordinary numeric codes. Other categorical controls need explicit dummy variables with one reference category omitted. An arbitrary encoding such as `urban=1`, `suburban=2`, `rural=3` imposes a false linear spacing unless that ordering is genuinely intended.
 
+## Digital-economics schema
+
+Use one row per campaign, source, platform, creative, or search keyword. Map impressions, clicks, conversions, spend, and contribution per conversion; an identity/tracked-conversion count is optional. Counts must be nonnegative and respect `conversions ≤ clicks ≤ impressions`. Spend is nonnegative. Keep the same currency and reporting window across rows.
+
+Preserve the keyword column when search economics matter. A high keyword ROAS may reflect brand demand, position, targeting, or attribution rules rather than incremental value. For the attribution audit, declare the lookback window, whether view-through conversions are included, how cross-device activity is resolved, and whether long-term outcomes are captured. The included `demo_digital_economics.csv` is fictional.
+
 ## Templates and examples
 
 The `examples` folder contains:
@@ -165,4 +171,3 @@ Excel files may contain hidden sheets, formulas, macros, links, and metadata. Th
 - Marketing timing aligned with outcome timing.
 - Direct identifiers and unused sensitive columns removed.
 - Causal claims matched to a real identification design.
-

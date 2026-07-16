@@ -182,13 +182,21 @@ At minimum, inspect:
 
 Time fixed effects can absorb shocks common to all entities, but they do not automatically solve endogeneity. Lagging spend changes timing, not identification.
 
-## 8. Association is not causality
+## 8. Digital economics and attribution audit
+
+For each campaign, platform, source, or search keyword, AllocSignal derives `CTR = clicks/impressions`, `CVR = conversions/clicks`, `CPM = 1000 × spend/impressions`, `CPC = spend/clicks`, and `CPA = spend/conversions` when denominators are positive. Gross contribution is `conversions × contribution per conversion`; net contribution subtracts spend. Contribution ROAS is gross contribution divided by spend. Break-even CPA equals contribution per conversion, and break-even CPC equals contribution per conversion multiplied by CVR.
+
+These are arithmetic planning identities, not causal estimates. Tracking coverage reports the observed share linked to the declared identity or conversion mechanism and cannot recover unobserved conversions. Keyword, source, platform, and campaign comparisons inherit selection, auction, targeting, seasonality, and measurement differences.
+
+The attribution audit records lookback window, view-through inclusion, cross-device handling, identity coverage, long-term-effect coverage, and any Markov/removal-effect assumptions. Every result is labeled retrospective and descriptive. Attributed conversions must not be treated as incrementality or passed directly into budget reallocation without a defensible experiment or other causal identification design.
+
+## 9. Association is not causality
 
 A regression coefficient estimates a causal incremental effect only under assumptions about assignment, omitted variables, interference, timing, functional form, and measurement. Marketing spend is often chosen in response to expected demand, so a positive association can reflect targeting rather than lift; a negative association can reflect reactive spending in weak markets.
 
 For consequential reallocation, prefer randomized holdouts, geo experiments, credible instruments, regression discontinuities, or other designs matched to the business process. Use the panel workspace as structured evidence checking, not a causality badge.
 
-## 9. Reproducible decision record
+## 10. Reproducible decision record
 
 An analysis should preserve:
 

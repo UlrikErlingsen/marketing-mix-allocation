@@ -32,6 +32,10 @@ Ask whether the channel ranking and direction of movement survive lower ceilings
 
 Mark every proposed spend outside the historically observed range. Compare pooled and within-entity evidence. Write down which assumptions come from experiments, observational models, analogies, and judgment.
 
+### Digital economics and attribution
+
+Use CPM/CPC/CTR/CVR/CPA and contribution calculations to reconcile delivery and economics, not to infer causality. Check tracking coverage, view-through, cross-device, window, duplication, and long-term omissions before comparing rows. Treat retrospective attribution as descriptive credit assignment; require incremental evidence before moving budget because one channel received more attributed conversions.
+
 ## A practical recommendation format
 
 Use four short sections:
@@ -89,4 +93,3 @@ For each implemented channel change, record:
 - the curve parameters to update.
 
 Review the plan on the cadence appropriate to the response lag, not simply because a dashboard refreshes daily.
-

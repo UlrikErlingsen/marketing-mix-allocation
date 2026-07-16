@@ -9,6 +9,7 @@ font = "sans serif"
 [server]
 maxUploadSize = 200
 headless = true
+fileWatcherType = "none"
 port = 8593
 
 [browser]

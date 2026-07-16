@@ -11,7 +11,7 @@
 
 <p align="center"><strong>Open marketing-response planning — diminishing-return curves and real constraints in, an auditable budget recommendation out.</strong></p>
 
-**AllocSignal** helps a marketer decide how much to spend and how to divide a budget across channels. It draws saturating response curves, compares the current plan with optimized alternatives, reports marginal return and elasticity, and stress-tests the recommendation. A separate panel-evidence workspace compares pooled, fixed-effects, and random-effects models so advanced users can challenge what the historical data actually support.
+**AllocSignal** helps a marketer decide how much to spend and how to divide a budget across channels. It draws saturating response curves, compares the current plan with optimized alternatives, reports marginal return and elasticity, and stress-tests the recommendation. Separate workspaces compare panel models and audit digital campaign economics, tracking coverage, search-keyword assumptions, and retrospective attribution.
 
 The interface starts with the decision. The methods, assumptions, and diagnostics remain close enough for an analyst to audit. Everything runs locally with open-source Python packages; there is no account, telemetry, or external AI call.
 
@@ -33,7 +33,8 @@ A panel coefficient is not silently converted into a causal response curve. Conn
 3. Compare the current plan with an optimized fixed-budget allocation. Read the change in contribution and each channel's marginal contribution from one more currency unit.
 4. Open the response curves and sensitivity view. Notice which recommendation changes when ceiling response or half-saturation is less favorable.
 5. Load the fictional **regional panel**. Select `region` as the entity, `period` as time, and `sales` as the outcome; compare pooled OLS, fixed effects, and random effects.
-6. Export the tables, assumptions, warnings, and model evidence needed to reproduce the discussion.
+6. Open **Digital economics & attribution** to calculate CPM/CPC/CTR/CVR/CPA and contribution economics, then review tracking and attribution warnings.
+7. Export the tables, assumptions, warnings, and model evidence needed to reproduce the discussion.
 
 The demos are synthetic teaching data. They describe no real company, campaign, channel, or market.
 
@@ -84,12 +85,15 @@ AllocSignal's Hausman comparison is an assumption diagnostic, not a truth machin
 - **Short and long run:** an explicitly labeled multiplier for delayed outcomes, not an unidentified dynamic model.
 - **Sensitivity:** low/base/high cases showing whether the decision survives plausible parameter changes.
 - **Panel structure:** pooled, fixed-effects, and random-effects estimates, uncertainty, within variation, and Hausman comparison.
+- **Digital economics:** CPM, CPC, CTR, CVR, CPA, contribution ROAS, break-even CPC/CPA, keyword-level economics, and tracking coverage.
+- **Attribution audit:** declared windows, identity coverage, view-through/cross-device assumptions, and an explicit non-causal retrospective label.
 - **Decision evidence:** portable tables and an audit trail containing inputs, assumptions, constraints, diagnostics, and warnings.
 
 ## What it deliberately does not claim
 
 - Response-curve inputs are not causal merely because they are precise.
 - Historical regression association is not incremental lift without a defensible identification design.
+- Retrospective attribution assigns observed credit under declared rules; it does not identify incremental lift and never triggers automatic reallocation.
 - Average ROI is not the return to the next currency unit; marginal return drives allocation.
 - Deterministic pairwise searches and multi-start SLSQP reduce local-solution risk but do not prove the joint global optimum when more than two channels can move.
 - An optimized plan is not implementable until minimum commitments, capacity, contracts, learning periods, and organizational constraints are represented.
@@ -153,7 +157,7 @@ Local mode reads uploads into the Python process on that computer. AllocSignal a
 
 Panel data can still be confidential or personal when an entity identifies a person, small account, or location. Use pseudonymous keys, aggregate where possible, and remove names, emails, free text, customer identifiers, and unnecessary columns. A hosted deployment changes the trust boundary; read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
-## Relationship to the Signal tools
+## Relationship to the Signal suite
 
 These apps share a visual language but answer different questions:
 
@@ -167,9 +171,13 @@ These apps share a visual language but answer different questions:
 - **[ExperimentSignal](https://github.com/UlrikErlingsen/experiment-analysis)** asks whether a randomized treatment caused a change worth acting on.
 - **[MeasureSignal](https://github.com/UlrikErlingsen/measurement-validation)** asks whether a multi-item score measures what you think it does.
 - **[TextSignal](https://github.com/UlrikErlingsen/open-text-analysis)** asks what recurring language patterns appear in open-ended responses.
+- **Pricing-evidence prototype (private pending rename)** asks what price range is supported and how unit contribution changes.
+- **[RecommendSignal](https://github.com/UlrikErlingsen/recommender-evaluation)** compares recommendation policies offline; its accuracy metrics are not causal return inputs here.
 - **AllocSignal** asks where the next marketing budget should go, given response assumptions, economics, and constraints.
 
 AllocSignal uses a contribution margin, but it is not a customer-lifetime-value model. WorthSignal can supply better unit economics; AllocSignal then applies them to a channel-allocation decision.
+
+See the maintained suite overview at [ulrikerlingsen.com](https://ulrikerlingsen.com). Product labels that have not passed their own publication screen remain outside the public catalog.
 
 ## Method references
 

@@ -14,7 +14,8 @@ PAGES = [
     "1 · Curves & assumptions",
     "2 · Allocate & stress-test",
     "3 · Panel evidence",
-    "4 · Decision & export",
+    "4 · Digital economics & attribution",
+    "5 · Decision & export",
     "Methods & limits",
 ]
 
@@ -110,6 +111,21 @@ def test_panel_demo_runs_pooled_fixed_and_random_effects() -> None:
     assert analysis.fixed_effects.estimator == "Entity fixed effects"
     assert analysis.random_effects.estimator == "Random effects"
     assert len(app.get("plotly_chart")) == 1
+
+
+def test_digital_demo_calculates_unit_economics_and_noncausal_audit() -> None:
+    app = AppTest.from_file(APP, default_timeout=60)
+    app.session_state["nav_target"] = "4 · Digital economics & attribution"
+    app.session_state["nav_epoch"] = 0
+    app.run()
+    _button(app.button, "Load fictional digital campaign").click().run()
+    _button(app.button, "Calculate economics & audit attribution").click().run()
+
+    assert not app.exception, [error.value for error in app.exception]
+    assert app.session_state["digital_result"] is not None
+    audit = app.session_state["attribution_audit"]
+    assert audit.loc[audit["audit_area"] == "Incrementality", "status"].iloc[0] == "DESCRIPTIVE ONLY"
+    assert len(app.download_button) == 3
 
 
 def test_methods_page_exposes_both_methods_and_the_key_limits() -> None:
