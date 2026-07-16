@@ -2,6 +2,12 @@
 
 All notable changes to AllocSignal are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 1.1.1 — 2026-07-16
+
+### Security
+
+- Export sanitizer now also neutralizes formula-like column headers and strips control characters; Docker images keep application code root-owned; defusedxml hardens workbook XML parsing.
+
 ## [Unreleased]
 
 ## [1.1.0] - 2026-07-16
