@@ -15,7 +15,8 @@ PAGES = [
     "2 · Allocate & stress-test",
     "3 · Panel evidence",
     "4 · Digital economics & attribution",
-    "5 · Decision & export",
+    "5 · Schedule & carryover",
+    "6 · Decision & export",
     "Methods & limits",
 ]
 
@@ -126,6 +127,33 @@ def test_digital_demo_calculates_unit_economics_and_noncausal_audit() -> None:
     audit = app.session_state["attribution_audit"]
     assert audit.loc[audit["audit_area"] == "Incrementality", "status"].iloc[0] == "DESCRIPTIVE ONLY"
     assert len(app.download_button) == 3
+
+
+def test_schedule_page_runs_declared_arithmetic_with_defaults() -> None:
+    app = AppTest.from_file(APP, default_timeout=60)
+    app.session_state["nav_target"] = "5 · Schedule & carryover"
+    app.session_state["nav_epoch"] = 0
+    app.run()
+    _button(app.button, "Run the schedule arithmetic").click().run()
+
+    assert not app.exception, [error.value for error in app.exception]
+    results = app.session_state["schedule_results"]
+    assert results is not None
+    assert list(results["schedule"].index) == ["TV", "Search", "Social"]
+    assert len(results["schedule"].columns) == 12
+    # TV: 120 in P01–P02 with λ = 0.6 → A_2 = 120 + 0.6·120 = 192
+    assert results["adstocked"].loc["TV"].iloc[1] == pytest.approx(192.0)
+    half_life = results["half_life"].set_index("channel")["half_life_periods"]
+    assert half_life["TV"] == pytest.approx(1.3569, abs=1e-3)
+    assert set(results["reach_tables"]) == {"TV", "Social"}
+    assert results["skipped"] == ["Search"]
+    assert results["interacted"] is None
+    assert len(app.get("plotly_chart")) >= 2
+    assert len(app.download_button) == 1
+    body = "\n".join(str(item.value) for item in [*app.markdown, *app.caption, *app.info])
+    assert "Broadbent" in body
+    assert "Rust" in body
+    assert "not an estimated synergy" in body
 
 
 def test_methods_page_exposes_both_methods_and_the_key_limits() -> None:

@@ -190,13 +190,47 @@ These are arithmetic planning identities, not causal estimates. Tracking coverag
 
 The attribution audit records lookback window, view-through inclusion, cross-device handling, identity coverage, long-term-effect coverage, and any Markov/removal-effect assumptions. Every result is labeled retrospective and descriptive. Attributed conversions must not be treated as incrementality or passed directly into budget reallocation without a defensible experiment or other causal identification design.
 
-## 9. Association is not causality
+## 9. Schedule, carryover, and declared reach
+
+The schedule workspace performs per-period media-plan arithmetic on parameters the analyst declares. Nothing in it is estimated from data; that boundary is the point.
+
+### Geometric adstock with declared retention
+
+For a channel with spend `x_t` in period `t` and a declared retention `λ ∈ [0, 0.95]`, effective advertising pressure follows the geometric adstock recursion
+
+`A_t = x_t + λ × A_{t−1}`, with `A_0 = 0`.
+
+The carryover half-life — the number of periods until carried-over pressure halves — is
+
+`half-life = ln(0.5) / ln(λ)` (zero when `λ = 0`).
+
+The half-life restates the declared retention in more interpretable units; it does not validate it. Retentions above 0.95 are refused rather than clipped because a near-permanent carryover assumption should be modeled, not asserted. The recursion is the classic form popularized by Broadbent (1979). Estimating `λ` from data requires a dynamic response model with dated observations and diagnostics; when AllocSignal shows an adstocked schedule, the retention is a **declared planning assumption**, never an estimate.
+
+Summed effective pressure exceeds summed spend whenever `λ > 0` because carried-over pressure is re-counted each period. It is spend-equivalent pressure, not money spent.
+
+### Declared-parameter reach and frequency
+
+When the analyst declares an audience size `N > 0` and a cost per impression-equivalent `c > 0` for a channel, per-period impressions, reach, and average frequency are
+
+`I_t = A_t / c`,
+`reach_t = N × (1 − exp(−I_t / N))`,
+`frequency_t = I_t / max(reach_t, ε)`.
+
+The exponential form is the standard random-duplication reach approximation used in media-planning models (Rust, 1986). It assumes exposures land independently across the declared audience; real schedules duplicate more or less than that. Channels without both declared parameters are skipped visibly rather than filled with defaults. Degenerate declarations (`c ≤ 0`, `N ≤ 0`) are refused.
+
+### Bounded pairwise interaction scenarios
+
+Up to three channel pairs may declare a multiplier `κ ∈ [0.8, 1.2]`. In each period where both paired channels carry positive effective pressure, both channels' pressure is multiplied by `κ`. Multipliers compound multiplicatively when a channel appears in more than one declared pair. Values outside the band are refused: this is scenario arithmetic on declared assumptions — not an estimated synergy — and larger claimed interactions need evidence, not a wider knob.
+
+The schedule workspace shares no parameters with the allocation optimizer. Its outputs are planning tables and charts to be challenged, exported, and, where they matter, tested against panel evidence or experiments.
+
+## 10. Association is not causality
 
 A regression coefficient estimates a causal incremental effect only under assumptions about assignment, omitted variables, interference, timing, functional form, and measurement. Marketing spend is often chosen in response to expected demand, so a positive association can reflect targeting rather than lift; a negative association can reflect reactive spending in weak markets.
 
 For consequential reallocation, prefer randomized holdouts, geo experiments, credible instruments, regression discontinuities, or other designs matched to the business process. Use the panel workspace as structured evidence checking, not a causality badge.
 
-## 10. Reproducible decision record
+## 11. Reproducible decision record
 
 An analysis should preserve:
 
@@ -214,7 +248,9 @@ The strategic decision belongs to the analyst and decision owner, not the optimi
 
 ## Primary references
 
+- Broadbent, S. (1979). One way TV advertisements work. *Journal of the Market Research Society, 21*(3), 139–166.
 - Little, J. D. C. (1970). Models and managers: The concept of a decision calculus. *Management Science, 16*(8), B-466–B-485. [https://doi.org/10.1287/mnsc.16.8.B466](https://doi.org/10.1287/mnsc.16.8.B466)
 - Hanssens, D. M., Parsons, L. J., & Schultz, R. L. (2001). *Market Response Models: Econometric and Time Series Analysis* (2nd ed.). Kluwer Academic Publishers.
 - Hausman, J. A. (1978). Specification tests in econometrics. *Econometrica, 46*(6), 1251–1271. [https://doi.org/10.2307/1913827](https://doi.org/10.2307/1913827)
+- Rust, R. T. (1986). *Advertising Media Models: A Practical Guide*. Lexington Books.
 - Wooldridge, J. M. (2010). *Econometric Analysis of Cross Section and Panel Data* (2nd ed.). MIT Press.

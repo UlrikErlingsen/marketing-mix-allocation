@@ -31,6 +31,18 @@ from allocsignal.errors import DataProblem, friendly_message
 from allocsignal.io import load_data, results_to_excel, results_to_json, tables_to_csv_zip
 from allocsignal.panel import analyze_panel
 from allocsignal.response import adbudg_response, calibrate_from_anchors
+from allocsignal.schedule import (
+    INTERACTION_MAX,
+    INTERACTION_MIN,
+    MAX_PERIODS,
+    MAX_RETENTION,
+    MIN_PERIODS,
+    adstock_half_life,
+    adstock_schedule,
+    apply_interactions,
+    prepare_schedule,
+    reach_frequency,
+)
 from allocsignal.validation import (
     infer_column,
     numeric_candidates,
@@ -45,7 +57,8 @@ PAGES = [
     "2 · Allocate & stress-test",
     "3 · Panel evidence",
     "4 · Digital economics & attribution",
-    "5 · Decision & export",
+    "5 · Schedule & carryover",
+    "6 · Decision & export",
     "Methods & limits",
 ]
 COLORS = {
@@ -316,6 +329,7 @@ for key, default in (
     ("digital_fingerprint", None),
     ("digital_result", None),
     ("attribution_audit", None),
+    ("schedule_results", None),
 ):
     st.session_state.setdefault(key, default)
 
@@ -1295,6 +1309,292 @@ def digital_page() -> None:
     d3.download_button("Download CSV bundle", tables_to_csv_zip(tables), "allocsignal-digital-evidence.zip")
 
 
+SCHEDULE_PARAMETER_COLUMNS = ["retention", "audience_size", "cost_per_impression"]
+
+
+def _default_schedule_frame(periods: int) -> pd.DataFrame:
+    """A small fictional flighting plan: TV bursts, always-on search, pulsing social."""
+    labels = [f"P{index:02d}" for index in range(1, periods + 1)]
+    spend = {
+        "TV": [120.0 if index % 4 in (1, 2) else 0.0 for index in range(1, periods + 1)],
+        "Search": [40.0] * periods,
+        "Social": [25.0 if index % 2 == 1 else 10.0 for index in range(1, periods + 1)],
+    }
+    parameters = {
+        "TV": (0.60, 800_000.0, 0.020),
+        "Search": (0.10, 0.0, 0.050),
+        "Social": (0.30, 500_000.0, 0.010),
+    }
+    rows = []
+    for channel, series in spend.items():
+        retention, audience, cost = parameters[channel]
+        rows.append(
+            {
+                "channel": channel,
+                "retention": retention,
+                "audience_size": audience,
+                "cost_per_impression": cost,
+                **dict(zip(labels, series)),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _raw_vs_effective_figure(schedule: pd.DataFrame, adstocked: pd.DataFrame) -> go.Figure:
+    figure = go.Figure()
+    palette = [COLORS["ink"], COLORS["coral"], COLORS["mint"], COLORS["gold"], "#6E7EB8", "#A0668B"]
+    periods = list(schedule.columns)
+    for index, channel in enumerate(schedule.index):
+        color = palette[index % len(palette)]
+        figure.add_trace(
+            go.Scatter(
+                x=periods, y=schedule.loc[channel], mode="lines", name=f"{channel} · planned",
+                line=dict(color=color, width=1.6, dash="dot"),
+                hovertemplate="%{x}<br>Planned %{y:,.1f}<extra>" + str(channel) + "</extra>",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=periods, y=adstocked.loc[channel], mode="lines", name=f"{channel} · effective",
+                line=dict(color=color, width=2.6),
+                hovertemplate="%{x}<br>Effective %{y:,.1f}<extra>" + str(channel) + "</extra>",
+            )
+        )
+    figure.update_layout(
+        height=430, margin=dict(l=10, r=10, t=24, b=10), xaxis_title="Period",
+        yaxis_title="Spend-equivalent pressure", legend_title_text="", plot_bgcolor="rgba(255,255,255,.55)",
+    )
+    return figure
+
+
+def _reach_figure(reach_tables: dict[str, pd.DataFrame], periods: list[str]) -> go.Figure:
+    figure = go.Figure()
+    palette = [COLORS["ink"], COLORS["coral"], COLORS["mint"], COLORS["gold"], "#6E7EB8", "#A0668B"]
+    for index, (channel, table) in enumerate(reach_tables.items()):
+        figure.add_trace(
+            go.Scatter(
+                x=periods, y=table["reach"], mode="lines+markers", name=str(channel),
+                line=dict(color=palette[index % len(palette)], width=2.4), marker=dict(size=6),
+                hovertemplate="%{x}<br>Reach %{y:,.0f}<extra>" + str(channel) + "</extra>",
+            )
+        )
+    figure.update_layout(
+        height=400, margin=dict(l=10, r=10, t=24, b=10), xaxis_title="Period",
+        yaxis_title="People reached (declared model)", legend_title_text="", plot_bgcolor="rgba(255,255,255,.55)",
+    )
+    return figure
+
+
+def schedule_page() -> None:
+    st.title("Schedule & carryover — plan arithmetic on declared assumptions")
+    st.write(
+        "Lay out spend per period, declare how much advertising pressure carries over, and—if you can declare an "
+        "audience size and a cost per impression-equivalent—translate pressure into reach and frequency. "
+        "Nothing on this page is estimated from data; every parameter is an explicit planning assumption."
+    )
+    periods = st.slider(
+        "Periods in the plan",
+        min_value=MIN_PERIODS,
+        max_value=MAX_PERIODS,
+        value=12,
+        help="Weeks, months, or any consistent period. Changing this resets the table to the fictional example.",
+    )
+    period_labels = [f"P{index:02d}" for index in range(1, periods + 1)]
+    editor_columns = {
+        "channel": st.column_config.TextColumn("Channel", help="A unique, human-readable channel name."),
+        "retention": st.column_config.NumberColumn(
+            "Retention λ", min_value=0.0, max_value=MAX_RETENTION, step=0.05, format="%.2f",
+            help=f"Share of last period's pressure that carries into this period. Declared, 0–{MAX_RETENTION}.",
+        ),
+        "audience_size": st.column_config.NumberColumn(
+            "Audience N · optional", min_value=0.0, format="%.0f",
+            help="Declared reachable audience. Leave 0 or blank to skip reach/frequency for the channel.",
+        ),
+        "cost_per_impression": st.column_config.NumberColumn(
+            "Cost per impression-eq. · optional", min_value=0.0, format="%.4f",
+            help="Declared spend per impression-equivalent. Leave 0 or blank to skip reach/frequency.",
+        ),
+        **{
+            label: st.column_config.NumberColumn(label, min_value=0.0, format="%.1f")
+            for label in period_labels
+        },
+    }
+    edited = full_width(
+        st.data_editor,
+        _default_schedule_frame(periods),
+        num_rows="dynamic",
+        hide_index=True,
+        column_config=editor_columns,
+        key=f"schedule_editor_{periods}",
+    )
+    st.markdown(
+        "<div class='ms-note'><b>Declared, not estimated.</b> Retention λ, audience size, and cost per "
+        "impression-equivalent are planning assumptions you assert. This page never fits them from data. "
+        "Geometric adstock follows Broadbent, S. (1979). One way TV advertisements work. "
+        "<i>Journal of the Market Research Society</i>, 21(3), 139–166.</div>",
+        unsafe_allow_html=True,
+    )
+    channel_names = [
+        name for name in edited["channel"].astype("string").fillna("").str.strip().tolist() if name
+    ]
+    with st.expander("Declared pairwise interaction scenario (optional)", expanded=False):
+        st.write(
+            f"Declare at most three multipliers κ between {INTERACTION_MIN} and {INTERACTION_MAX}. In periods where "
+            "both channels of a pair carry positive effective pressure, both channels' pressure is multiplied by κ. "
+            "This is scenario arithmetic on declared assumptions — not an estimated synergy."
+        )
+        interaction_inputs: list[tuple[str, str, float]] = []
+        for slot in (1, 2, 3):
+            columns = st.columns(3)
+            first = columns[0].selectbox(
+                f"Pair {slot} · channel A", ["(none)", *channel_names], key=f"interaction_a_{slot}"
+            )
+            second = columns[1].selectbox(
+                f"Pair {slot} · channel B", ["(none)", *channel_names], key=f"interaction_b_{slot}"
+            )
+            kappa = columns[2].number_input(
+                f"Pair {slot} · multiplier κ",
+                min_value=INTERACTION_MIN,
+                max_value=INTERACTION_MAX,
+                value=1.0,
+                step=0.05,
+                key=f"interaction_kappa_{slot}",
+            )
+            interaction_inputs.append((first, second, float(kappa)))
+    if st.button("Run the schedule arithmetic", type="primary"):
+        try:
+            declared_pairs: list[tuple[str, str, float]] = []
+            for slot, (first, second, kappa) in enumerate(interaction_inputs, start=1):
+                chosen = [name for name in (first, second) if name != "(none)"]
+                if len(chosen) == 1:
+                    raise DataProblem(
+                        f"Interaction pair {slot} declares only one channel. Choose both channels or set both to (none)."
+                    )
+                if len(chosen) == 2:
+                    declared_pairs.append((first, second, kappa))
+            schedule = prepare_schedule(edited.drop(columns=SCHEDULE_PARAMETER_COLUMNS, errors="ignore"))
+            parameters = edited.copy()
+            parameters["channel"] = parameters["channel"].astype("string").fillna("").str.strip()
+            parameters = parameters.set_index("channel")
+            for column in SCHEDULE_PARAMETER_COLUMNS:
+                parameters[column] = pd.to_numeric(parameters[column], errors="coerce")
+            retention_map = {channel: float(parameters.loc[channel, "retention"]) for channel in schedule.index}
+            adstocked = adstock_schedule(schedule, retention_map)
+            half_life = pd.DataFrame(
+                {
+                    "channel": list(schedule.index),
+                    "retention": [retention_map[channel] for channel in schedule.index],
+                    "half_life_periods": [adstock_half_life(retention_map[channel]) for channel in schedule.index],
+                }
+            )
+            reach_tables: dict[str, pd.DataFrame] = {}
+            skipped: list[str] = []
+            for channel in schedule.index:
+                audience = float(parameters.loc[channel, "audience_size"])
+                cost = float(parameters.loc[channel, "cost_per_impression"])
+                if not np.isfinite(audience) or not np.isfinite(cost) or audience <= 0 or cost <= 0:
+                    skipped.append(str(channel))
+                    continue
+                reach_tables[str(channel)] = reach_frequency(
+                    adstocked.loc[channel].to_numpy(dtype=float), audience, cost
+                )
+            interacted = apply_interactions(adstocked, declared_pairs) if declared_pairs else None
+            st.session_state["schedule_results"] = {
+                "schedule": schedule,
+                "adstocked": adstocked,
+                "half_life": half_life,
+                "reach_tables": reach_tables,
+                "skipped": skipped,
+                "interactions": declared_pairs,
+                "interacted": interacted,
+            }
+        except Exception as exc:
+            show_error(exc)
+
+    results = st.session_state.get("schedule_results")
+    if not results:
+        return
+    schedule = results["schedule"]
+    adstocked = results["adstocked"]
+    metrics = st.columns(4)
+    metrics[0].metric("Channels", f"{len(schedule)}")
+    metrics[1].metric("Periods", f"{len(schedule.columns)}")
+    metrics[2].metric("Planned spend", f"{float(schedule.to_numpy().sum()):,.1f}")
+    metrics[3].metric("Effective pressure", f"{float(adstocked.to_numpy().sum()):,.1f}", "spend-equivalent units")
+    st.caption(
+        "Effective pressure re-counts carried-over spend, so its total exceeds planned spend whenever λ > 0. "
+        "It is advertising pressure in spend-equivalent units, not money spent."
+    )
+    st.subheader("Effective versus planned spend")
+    full_width(st.plotly_chart, _raw_vs_effective_figure(schedule, adstocked))
+    st.markdown("#### Carryover half-life")
+    full_width(st.dataframe, results["half_life"].round(3), hide_index=True)
+    st.caption(
+        "Half-life = ln(0.5) / ln(λ): the number of periods until carried-over pressure halves. "
+        "It restates the declared retention; it does not validate it."
+    )
+    st.subheader("Reach & frequency from declared parameters")
+    if results["reach_tables"]:
+        period_columns = list(schedule.columns)
+        full_width(st.plotly_chart, _reach_figure(results["reach_tables"], period_columns))
+        for channel, table in results["reach_tables"].items():
+            with st.expander(f"Reach & frequency table · {channel}"):
+                display = table.copy()
+                display.insert(0, "period", period_columns)
+                full_width(st.dataframe, display.round(3), hide_index=True)
+        st.caption(
+            "Impressions I = effective spend / cost per impression-equivalent; reach = N·(1 − exp(−I/N)); "
+            "frequency = I / reach. A declared-parameter planning identity in the spirit of Rust, R. T. (1986). "
+            "*Advertising Media Models: A Practical Guide*. Lexington Books — not a measured audience."
+        )
+    if results["skipped"]:
+        st.info(
+            "Reach and frequency were skipped for: " + ", ".join(results["skipped"]) + ". "
+            "Declare a positive audience size and cost per impression-equivalent to include a channel. "
+            "Skipping is deliberate: without declared parameters there is nothing defensible to compute."
+        )
+    if results["interacted"] is not None:
+        st.subheader("Interaction scenario — with versus without")
+        comparison = pd.DataFrame(
+            {
+                "channel": list(schedule.index),
+                "effective_without": adstocked.sum(axis=1).to_numpy(dtype=float),
+                "effective_with": results["interacted"].sum(axis=1).to_numpy(dtype=float),
+            }
+        )
+        comparison["difference"] = comparison["effective_with"] - comparison["effective_without"]
+        full_width(st.dataframe, comparison.round(2), hide_index=True)
+        st.caption(
+            "Scenario arithmetic on declared assumptions — not an estimated synergy. The multipliers apply only in "
+            "periods where both paired channels carry positive pressure, and compound if a channel is in several pairs."
+        )
+    export_tables: dict[str, pd.DataFrame] = {
+        "Schedule spend": schedule.reset_index(),
+        "Effective spend adstock": adstocked.reset_index(),
+        "Retention half-life": results["half_life"],
+    }
+    for channel, table in results["reach_tables"].items():
+        named = table.copy()
+        named.insert(0, "period", list(schedule.columns))
+        export_tables[f"Reach frequency {channel}"] = named
+    if results["interacted"] is not None:
+        export_tables["Interaction scenario effective spend"] = results["interacted"].reset_index()
+        export_tables["Interaction declarations"] = pd.DataFrame(
+            results["interactions"], columns=["channel_a", "channel_b", "kappa"]
+        )
+    full_width(
+        st.download_button,
+        "Download schedule tables (CSV ZIP)",
+        tables_to_csv_zip(export_tables),
+        "allocsignal_schedule_tables.zip",
+        "application/zip",
+    )
+    st.caption(
+        "Method boundary: this page is per-period arithmetic on declared assumptions. For evidence about what spend "
+        "has historically been associated with, use 3 · Panel evidence; causal claims need an experiment."
+    )
+
+
 def _named_allocation_results(allocation: dict[str, object]) -> list[tuple[str, object]]:
     named = [
         ("Current baseline", allocation["baseline"]),
@@ -1963,7 +2263,8 @@ def methods_page() -> None:
               same sale, total response is overstated.
             - Historical panels need genuine within-entity input variation. More rows do not compensate for no variation.
             - Lags, adstock/carryover, seasonality beyond optional time indicators, price endogeneity, competitive
-              response, and cross-channel interaction require a richer design than this release estimates.
+              response, and cross-channel interaction require a richer design than this release estimates. The
+              Schedule & carryover page applies a **declared** adstock and interaction scenario; it estimates neither.
             - Long-run multipliers are explicit judgments. They are not an adstock model and must not be presented as one.
             - FE removes stable omitted differences, not time-varying confounders. RE's key orthogonality assumption is untestable in full.
             - P-values and confidence intervals describe sampling uncertainty under a model; curve sensitivity describes
@@ -1996,7 +2297,9 @@ elif page == "3 · Panel evidence":
     panel_page()
 elif page == "4 · Digital economics & attribution":
     digital_page()
-elif page == "5 · Decision & export":
+elif page == "5 · Schedule & carryover":
+    schedule_page()
+elif page == "6 · Decision & export":
     decision_page()
 else:
     methods_page()

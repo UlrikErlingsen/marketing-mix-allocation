@@ -161,6 +161,33 @@ Run an explicit attribution audit and record:
 
 Always describe retrospective attribution as **descriptive and non-causal**. It distributes observed credit under a rule or fitted path model; it does not identify what would have happened without the touchpoint. Do not convert attributed conversions directly into budget changes. Use experiments, credible quasi-experiments, or carefully qualified response models for incremental allocation decisions.
 
+### Part 5: schedule and carryover arithmetic (optional)
+
+Use this section when the user has (or wants to sketch) a per-period spend schedule — channels × 4 to 52 periods. Everything here is arithmetic on parameters the user **declares**; estimate nothing from data in this part, and say so explicitly in your output.
+
+**Geometric adstock.** For each channel, ask the user to declare a retention `λ` between 0 and 0.95 (refuse values outside that range rather than clipping), then compute effective advertising pressure:
+
+```
+A_t = x_t + λ * A_{t-1}, with A_0 = 0
+half-life = ln(0.5) / ln(λ)   (0 when λ = 0)
+```
+
+Report the half-life next to each λ so the assumption is interpretable, and label every adstocked number "declared retention, not estimated". Summed effective pressure exceeds summed spend whenever `λ > 0`; call it spend-equivalent pressure, never money spent.
+
+**Reach and frequency.** Only for channels where the user declares both an audience size `N > 0` and a cost per impression-equivalent `c > 0`:
+
+```
+I_t = A_t / c
+reach_t = N * (1 - exp(-I_t / N))
+frequency_t = I_t / max(reach_t, epsilon)
+```
+
+Refuse `c <= 0` or `N <= 0`. If either parameter is missing, skip the channel and say visibly that reach/frequency was skipped for it — do not invent defaults. The exponential reach form is the standard random-duplication planning approximation; real schedules duplicate differently.
+
+**Bounded interaction scenarios.** The user may declare at most three channel pairs, each with a multiplier `κ` between 0.8 and 1.2. In every period where both paired channels carry positive effective pressure, multiply both channels' pressure by `κ`; multipliers compound if a channel appears in several pairs. Present a with/without comparison and label it "scenario arithmetic on declared assumptions — not an estimated synergy". Refuse multipliers outside 0.8–1.2: larger claimed interactions need evidence, not a wider knob.
+
+**Refusals.** Also refuse schedules with fewer than 4 or more than 52 periods, negative or missing spend cells, and duplicate or empty channel names. Method boundary: this part produces planning tables to challenge; for evidence about what spend has historically been associated with, use Part 3, and for causal claims require an experiment.
+
 ### Diagnostics and honesty checks
 
 Run and report these before presenting any recommendation:
@@ -195,7 +222,9 @@ Run and report these before presenting any recommendation:
 
 ### Sources
 
+- Broadbent, S. (1979). One way TV advertisements work. *Journal of the Market Research Society, 21*(3), 139–166.
 - Little, J. D. C. (1970). Models and managers: The concept of a decision calculus. *Management Science, 16*(8), B-466–B-485. https://doi.org/10.1287/mnsc.16.8.B466
 - Hanssens, D. M., Parsons, L. J., & Schultz, R. L. (2001). *Market Response Models: Econometric and Time Series Analysis* (2nd ed.). Kluwer Academic Publishers.
 - Hausman, J. A. (1978). Specification tests in econometrics. *Econometrica, 46*(6), 1251–1271. https://doi.org/10.2307/1913827
+- Rust, R. T. (1986). *Advertising Media Models: A Practical Guide*. Lexington Books.
 - Wooldridge, J. M. (2010). *Econometric Analysis of Cross Section and Panel Data* (2nd ed.). MIT Press.

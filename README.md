@@ -87,6 +87,7 @@ AllocSignal's Hausman comparison is an assumption diagnostic, not a truth machin
 - **Panel structure:** pooled, fixed-effects, and random-effects estimates, uncertainty, within variation, and Hausman comparison.
 - **Digital economics:** CPM, CPC, CTR, CVR, CPA, contribution ROAS, break-even CPC/CPA, keyword-level economics, and tracking coverage.
 - **Attribution audit:** declared windows, identity coverage, view-through/cross-device assumptions, and an explicit non-causal retrospective label.
+- **Schedule & carryover:** per-period plan arithmetic with declared geometric adstock (retention λ and its half-life), declared-parameter reach/frequency, bounded pairwise interaction scenarios, and CSV export of every schedule table.
 - **Decision evidence:** portable tables and an audit trail containing inputs, assumptions, constraints, diagnostics, and warnings.
 
 ## What it deliberately does not claim
@@ -99,6 +100,7 @@ AllocSignal's Hausman comparison is an assumption diagnostic, not a truth machin
 - An optimized plan is not implementable until minimum commitments, capacity, contracts, learning periods, and organizational constraints are represented.
 - Independent channel curves do not capture synergy, substitution, shared reach, auction feedback, competitor response, or a changing market baseline.
 - The long-run multiplier is a scenario device, not evidence of carryover. Use lagged or adstock models only when timing, variation, and assumptions support them.
+- The schedule workspace computes with declared retention, audience, cost, and interaction parameters; none of those numbers are estimated from data, and its interaction multipliers are scenario arithmetic, not measured synergy.
 
 ## Run locally
 

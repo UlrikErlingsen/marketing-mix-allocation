@@ -36,7 +36,7 @@ def test_changed_chosen_budget_is_not_labelled_pure_reallocation_and_exports() -
     body = "\n".join(str(item.value) for item in [*app.markdown, *app.info])
     assert "budget-size change" in body
 
-    app.sidebar.radio[0].set_value("5 · Decision & export").run()
+    app.sidebar.radio[0].set_value("6 · Decision & export").run()
     assert not app.exception, [error.value for error in app.exception]
     decision_body = "\n".join(str(item.value) for item in [*app.markdown, *app.info])
     assert "reallocation alone" in decision_body
@@ -64,6 +64,6 @@ def test_time_controls_stay_in_model_tables_but_not_public_coefficient_chart() -
     chart_terms = {str(value) for trace in spec["data"] for value in trace.get("y", [])}
     assert chart_terms.isdisjoint(period_terms)
 
-    app.sidebar.radio[0].set_value("5 · Decision & export").run()
+    app.sidebar.radio[0].set_value("6 · Decision & export").run()
     assert not app.exception, [error.value for error in app.exception]
     assert len(app.get("download_button")) == 3

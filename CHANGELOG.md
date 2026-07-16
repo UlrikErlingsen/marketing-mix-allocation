@@ -11,6 +11,7 @@ All notable changes to AllocSignal are documented here. The project follows [Sem
 - Digital campaign economics for CPM, CPC, CTR, CVR, CPA, gross/net contribution, contribution ROAS, and break-even CPC/CPA.
 - Search-keyword economics, identity/tracking coverage, and view-through/cross-device/window declarations.
 - A retrospective attribution audit that preserves descriptive labels and never auto-reallocates budget from attributed conversions.
+- A Schedule & carryover page for per-period media-plan arithmetic on declared assumptions: editable channels × periods spend table, geometric adstock with declared retention λ and half-life readout, declared-parameter reach/frequency (skipped visibly when audience or cost is not declared), bounded pairwise interaction scenarios (≤3 multipliers in 0.8–1.2) with a with/without comparison, effective-vs-planned and reach charts, and CSV export of all schedule tables.
 
 ## [1.0.0] - 2026-07-14
 
