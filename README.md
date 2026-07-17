@@ -173,13 +173,15 @@ These apps share a visual language but answer different questions:
 - **[ExperimentSignal](https://github.com/UlrikErlingsen/experiment-analysis)** asks whether a randomized treatment caused a change worth acting on.
 - **[MeasureSignal](https://github.com/UlrikErlingsen/measurement-validation)** asks whether a multi-item score measures what you think it does.
 - **[TextSignal](https://github.com/UlrikErlingsen/open-text-analysis)** asks what recurring language patterns appear in open-ended responses.
-- **Pricing-evidence prototype (private pending rename)** asks what price range is supported and how unit contribution changes.
+- **[TagSignal](https://github.com/UlrikErlingsen/pricing-analysis)** asks what price range is supported and how unit contribution changes, from assigned-price, historical, or willingness-to-pay evidence.
 - **[RecommendSignal](https://github.com/UlrikErlingsen/recommender-evaluation)** compares recommendation policies offline; its accuracy metrics are not causal return inputs here.
+- **[TraceSignal](https://github.com/UlrikErlingsen/journey-path-analysis)** describes how logged customer journeys unfold; its Markov removal sensitivity is descriptive, not causal channel credit for allocation.
+- **[TrackSignal](https://github.com/UlrikErlingsen/brand-tracking)** asks whether brand measures moved across tracking waves by more than a declared practical threshold.
 - **AllocSignal** asks where the next marketing budget should go, given response assumptions, economics, and constraints.
 
 AllocSignal uses a contribution margin, but it is not a customer-lifetime-value model. WorthSignal can supply better unit economics; AllocSignal then applies them to a channel-allocation decision.
 
-See the maintained suite overview at [ulrikerlingsen.com](https://ulrikerlingsen.com). Product labels that have not passed their own publication screen remain outside the public catalog.
+See the maintained suite overview at [ulrikerlingsen.com](https://ulrikerlingsen.com).
 
 ## Method references
 
