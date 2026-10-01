@@ -2,6 +2,29 @@
 
 All notable changes to Alloc Signal are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-10-02
+
+Signal brand refresh and Signal Hub entry point. The analysis, optimization, panel estimators, data contracts and export tables are unchanged (apart from the product label in the manifest).
+
+### Brand
+
+- Display name written **Alloc Signal** (with a space) in the app, README, docs, launchers and metadata; the evidence-pack manifest now reports `product: "Alloc Signal"`. Package, file, Docker and environment-variable names stay `allocsignal` / `ALLOCSIGNAL_*`.
+- The app uses the shared `signal_theme` module (Organic Signal design, Decide family colour `#4f80a2`, Figtree): sidebar lockup, masthead, hero, cards, notes, footer, the per-app Plotly template (charts shown through `sig.chart`) and the mark as favicon replace the pasted styles. Chart series map to the Decide colorway and neutral tokens with the same meaning as before.
+- New banner, social preview and marks in `assets/`; the old banner SVG is removed. `.streamlit/config.toml` uses the family colours.
+- README follows the Signal template; bug-report and feature-request issue templates added.
+
+### Signal Hub contract
+
+- `allocsignal.ui` exposes `APP_INFO` and `render()`, so Signal Hub can embed the app; `app.py` is now a thin standalone entry point.
+- All session-state and widget keys are namespaced `alloc:` (including the page selector).
+- The fictional demos and templates ship as package data under `allocsignal/ui/examples/`, so they also work from a normal (non-editable) install; `examples/` keeps the user-facing copies.
+- `streamlit` and `plotly` moved to a `ui` extra (also in `test`); the analysis core installs without them. `requirements.txt` still lists everything.
+- New tests: no Streamlit/Plotly import outside `allocsignal.ui`, `render()` runs from a script without a page config, every widget key is namespaced, and the demo data is packaged.
+
+### Fixed
+
+- Dockerfile: a stray line continuation folded `USER allocsignal` into the `useradd` command.
+
 ## 1.1.1 — 2026-07-16
 
 ### Security
