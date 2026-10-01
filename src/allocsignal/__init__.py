@@ -1,4 +1,4 @@
-"""AllocSignal: transparent marketing response and resource allocation."""
+"""Alloc Signal: transparent marketing response and resource allocation."""
 
 from __future__ import annotations
 

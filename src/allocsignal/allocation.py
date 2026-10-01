@@ -1,4 +1,4 @@
-"""Constrained marketing-budget allocation for AllocSignal.
+"""Constrained marketing-budget allocation for Alloc Signal.
 
 The allocator treats channel response curves as additive and independent.  It
 does not infer cross-channel synergies or causal effects.  That deliberately

@@ -11,7 +11,7 @@ if [ -f "$PID_FILE" ] && [ -f "$PORT_FILE" ]; then
   EXISTING_PORT="$(/bin/cat "$PORT_FILE")"
   EXISTING_URL="http://127.0.0.1:${EXISTING_PORT}"
   if /bin/kill -0 "$EXISTING_PID" 2>/dev/null && /usr/bin/curl -fsS "${EXISTING_URL}/_stcore/health" >/dev/null 2>&1; then
-    echo "AllocSignal is already running. Opening it now."
+    echo "Alloc Signal is already running. Opening it now."
     if [ "${ALLOCSIGNAL_NO_BROWSER:-0}" != "1" ]; then
       /usr/bin/open "$EXISTING_URL"
     fi
@@ -21,14 +21,14 @@ if [ -f "$PID_FILE" ] && [ -f "$PORT_FILE" ]; then
 fi
 
 if ! /usr/bin/env python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
-  echo "AllocSignal needs Python 3.10 or newer."
+  echo "Alloc Signal needs Python 3.10 or newer."
   echo "Install it from https://www.python.org/downloads/ and try again."
   read -r -p "Press Return to close..."
   exit 1
 fi
 
 if [ ! -x ".venv/bin/python" ]; then
-  echo "Creating AllocSignal's private Python environment..."
+  echo "Creating Alloc Signal's private Python environment..."
   /usr/bin/env python3 -m venv .venv
 fi
 
@@ -38,13 +38,13 @@ export ARROW_DEFAULT_MEMORY_POOL="${ARROW_DEFAULT_MEMORY_POOL:-system}"
 REQUIREMENTS_HASH="$(/usr/bin/shasum -a 256 requirements.txt | /usr/bin/awk '{print $1}')"
 READY_FILE=".venv/.allocsignal-requirements-${REQUIREMENTS_HASH}"
 if [ ! -f "$READY_FILE" ]; then
-  echo "First launch: downloading AllocSignal's Python packages. This can take a few minutes."
+  echo "First launch: downloading Alloc Signal's Python packages. This can take a few minutes."
   echo "Later launches will be much faster and can work offline."
   python -m pip --disable-pip-version-check install --prefer-binary -r requirements.txt
   /bin/rm -f .venv/.allocsignal-requirements-* .venv/.allocsignal-ready
   /usr/bin/touch "$READY_FILE"
 else
-  echo "Using the existing AllocSignal environment."
+  echo "Using the existing Alloc Signal environment."
 fi
 
 PORT="${ALLOCSIGNAL_PORT:-8593}"
@@ -61,7 +61,7 @@ finally:
     sock.close()
 PY
 then
-  echo "AllocSignal's local port ${PORT} is already in use."
+  echo "Alloc Signal's local port ${PORT} is already in use."
   echo "Close the other app, or launch with ALLOCSIGNAL_PORT set to a different private port."
   read -r -p "Press Return to close..."
   exit 1
@@ -70,7 +70,7 @@ fi
 URL="http://127.0.0.1:${PORT}"
 MAX_UPLOAD_MB="${ALLOCSIGNAL_MAX_UPLOAD_MB:-200}"
 
-echo "Starting AllocSignal at ${URL}..."
+echo "Starting Alloc Signal at ${URL}..."
 python -m streamlit run app.py \
   --server.headless=true \
   --server.address=127.0.0.1 \
@@ -90,13 +90,13 @@ trap cleanup EXIT
 
 for _ in {1..80}; do
   if ! /bin/kill -0 "$APP_PID" 2>/dev/null; then
-    echo "AllocSignal stopped before it was ready."
+    echo "Alloc Signal stopped before it was ready."
     /bin/cat .venv/allocsignal.log
     read -r -p "Press Return to close..."
     exit 1
   fi
   if /usr/bin/curl -fsS "${URL}/_stcore/health" >/dev/null 2>&1; then
-    echo "AllocSignal is ready. Keep this window open while you use the app."
+    echo "Alloc Signal is ready. Keep this window open while you use the app."
     if [ "${ALLOCSIGNAL_NO_BROWSER:-0}" != "1" ]; then
       /usr/bin/open "$URL"
     fi
@@ -106,7 +106,7 @@ for _ in {1..80}; do
   /bin/sleep 0.25
 done
 
-echo "AllocSignal took too long to start."
+echo "Alloc Signal took too long to start."
 /bin/cat .venv/allocsignal.log
 /bin/kill "$APP_PID" 2>/dev/null || true
 read -r -p "Press Return to close..."

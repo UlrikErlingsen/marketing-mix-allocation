@@ -1,6 +1,6 @@
 # Methods and interpretation
 
-AllocSignal combines two related but deliberately separate analytical tasks:
+Alloc Signal combines two related but deliberately separate analytical tasks:
 
 1. **response planning and constrained allocation**; and
 2. **panel-data evidence checking**.
@@ -9,7 +9,7 @@ The first needs a response curve that can be evaluated outside the exact histori
 
 ## 1. ADBUDG/Hill response curve
 
-For channel spend `x ≥ 0`, AllocSignal uses the saturating curve
+For channel spend `x ≥ 0`, Alloc Signal uses the saturating curve
 
 `R(x) = b + (a − b) × x^c / (h^c + x^c)`
 
@@ -70,7 +70,7 @@ With a fixed total budget, an interior optimum tends to equalize `m × R′_j(x_
 
 ## 3. Allocation scenarios
 
-AllocSignal separates three comparisons.
+Alloc Signal separates three comparisons.
 
 ### Current plan
 
@@ -116,7 +116,7 @@ Calibration uncertainty is usually larger than numerical-optimization error. A s
 
 ## 6. Short- and long-run scenarios
 
-AllocSignal can apply a declared long-run response multiplier to the channel curve. This is a scenario, not a dynamic estimate. It can represent a hypothesized carryover, awareness, retention, or delayed conversion effect, but it does not identify when that response arrives.
+Alloc Signal can apply a declared long-run response multiplier to the channel curve. This is a scenario, not a dynamic estimate. It can represent a hypothesized carryover, awareness, retention, or delayed conversion effect, but it does not identify when that response arrives.
 
 A proper dynamic model needs dated observations, a defensible lag or adstock transformation, enough time variation, and diagnostics for autocorrelation and seasonality. Do not describe a scenario multiplier as empirically estimated carryover unless it actually came from such a model.
 
@@ -161,9 +161,9 @@ The classic statistic compares common FE and RE slopes:
 
 Under its regularity conditions, `H` is compared with a chi-squared distribution. A small p-value indicates systematic coefficient differences inconsistent with the RE orthogonality assumption. A large p-value can also reflect low power, noisy estimates, or an unstable covariance difference; it does not prove random effects.
 
-AllocSignal computes this classical diagnostic from separate FE and RE refits using conventional model-based covariance matrices. The coefficient tables can still show entity-clustered or HC1-robust intervals; those robust matrices are not substituted into the classical `V_FE − V_RE` formula because their difference does not generally retain the covariance relationship the test requires. The reported covariance basis therefore travels with the Hausman result.
+Alloc Signal computes this classical diagnostic from separate FE and RE refits using conventional model-based covariance matrices. The coefficient tables can still show entity-clustered or HC1-robust intervals; those robust matrices are not substituted into the classical `V_FE − V_RE` formula because their difference does not generally retain the covariance relationship the test requires. The reported covariance basis therefore travels with the Hausman result.
 
-The model-based covariance difference can still be singular or indefinite in finite samples. If no substantive slope is estimable in both models, or the covariance difference has rank zero, AllocSignal suppresses the statistic and p-value, reports zero test degrees of freedom, and marks the result invalid. An indefinite covariance difference is also marked invalid even when a pseudoinverse value can be calculated. These cases require direct comparison of estimates and assumptions rather than a model-selection p-value.
+The model-based covariance difference can still be singular or indefinite in finite samples. If no substantive slope is estimable in both models, or the covariance difference has rank zero, Alloc Signal suppresses the statistic and p-value, reports zero test degrees of freedom, and marks the result invalid. An indefinite covariance difference is also marked invalid even when a pseudoinverse value can be calculated. These cases require direct comparison of estimates and assumptions rather than a model-selection p-value.
 
 ### Uncertainty and diagnostics
 
@@ -184,7 +184,7 @@ Time fixed effects can absorb shocks common to all entities, but they do not aut
 
 ## 8. Digital economics and attribution audit
 
-For each campaign, platform, source, or search keyword, AllocSignal derives `CTR = clicks/impressions`, `CVR = conversions/clicks`, `CPM = 1000 × spend/impressions`, `CPC = spend/clicks`, and `CPA = spend/conversions` when denominators are positive. Gross contribution is `conversions × contribution per conversion`; net contribution subtracts spend. Contribution ROAS is gross contribution divided by spend. Break-even CPA equals contribution per conversion, and break-even CPC equals contribution per conversion multiplied by CVR.
+For each campaign, platform, source, or search keyword, Alloc Signal derives `CTR = clicks/impressions`, `CVR = conversions/clicks`, `CPM = 1000 × spend/impressions`, `CPC = spend/clicks`, and `CPA = spend/conversions` when denominators are positive. Gross contribution is `conversions × contribution per conversion`; net contribution subtracts spend. Contribution ROAS is gross contribution divided by spend. Break-even CPA equals contribution per conversion, and break-even CPC equals contribution per conversion multiplied by CVR.
 
 These are arithmetic planning identities, not causal estimates. Tracking coverage reports the observed share linked to the declared identity or conversion mechanism and cannot recover unobserved conversions. Keyword, source, platform, and campaign comparisons inherit selection, auction, targeting, seasonality, and measurement differences.
 
@@ -204,7 +204,7 @@ The carryover half-life — the number of periods until carried-over pressure ha
 
 `half-life = ln(0.5) / ln(λ)` (zero when `λ = 0`).
 
-The half-life restates the declared retention in more interpretable units; it does not validate it. Retentions above 0.95 are refused rather than clipped because a near-permanent carryover assumption should be modeled, not asserted. The recursion is the classic form popularized by Broadbent (1979). Estimating `λ` from data requires a dynamic response model with dated observations and diagnostics; when AllocSignal shows an adstocked schedule, the retention is a **declared planning assumption**, never an estimate.
+The half-life restates the declared retention in more interpretable units; it does not validate it. Retentions above 0.95 are refused rather than clipped because a near-permanent carryover assumption should be modeled, not asserted. The recursion is the classic form popularized by Broadbent (1979). Estimating `λ` from data requires a dynamic response model with dated observations and diagnostics; when Alloc Signal shows an adstocked schedule, the retention is a **declared planning assumption**, never an estimate.
 
 Summed effective pressure exceeds summed spend whenever `λ > 0` because carried-over pressure is re-counted each period. It is spend-equivalent pressure, not money spent.
 

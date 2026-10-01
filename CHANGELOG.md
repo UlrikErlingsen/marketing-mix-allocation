@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AllocSignal are documented here. The project follows [Semantic Versioning](https://semver.org/).
+All notable changes to Alloc Signal are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
 ## 1.1.1 — 2026-07-16
 

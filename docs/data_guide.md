@@ -1,6 +1,6 @@
 # Data guide
 
-AllocSignal accepts two separate table types:
+Alloc Signal accepts two separate table types:
 
 1. a **channel plan** for response curves and allocation; or
 2. an **entity-period panel** for historical evidence.

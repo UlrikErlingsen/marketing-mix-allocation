@@ -1,4 +1,4 @@
-"""Panel-data estimators and diagnostics for AllocSignal.
+"""Panel-data estimators and diagnostics for Alloc Signal.
 
 The module deliberately separates evidence from allocation.  These estimators
 describe conditional associations in observed panel data; none of the returned
@@ -206,7 +206,7 @@ def prepare_panel(
 ) -> pd.DataFrame:
     """Select and explicitly handle rows needed for panel estimation.
 
-    ``missing='drop'`` is intentionally explicit: AllocSignal never silently
+    ``missing='drop'`` is intentionally explicit: Alloc Signal never silently
     drops incomplete rows.  Predictors must already be numeric (for example,
     categories should first be encoded as documented dummy variables).
     """

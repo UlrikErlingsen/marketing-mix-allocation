@@ -1,6 +1,6 @@
-# AllocSignal AI Analyst — run this analysis with any AI, no install needed
+# Alloc Signal AI Analyst — run this analysis with any AI, no install needed
 
-> Part of [AllocSignal](https://github.com/UlrikErlingsen/marketing-mix-allocation), a free open-source app that runs this same analysis with a point-and-click interface on your computer. This file is the no-install alternative: give it to an AI assistant and it becomes the analyst.
+> Part of [Alloc Signal](https://github.com/UlrikErlingsen/marketing-mix-allocation), a free open-source app that runs this same analysis with a point-and-click interface on your computer. This file is the no-install alternative: give it to an AI assistant and it becomes the analyst.
 
 ## How to use this file (2 minutes)
 
@@ -39,7 +39,7 @@ If curve parameters are missing, offer to calibrate them from anchor points (Par
 
 ### Part 1: response curves
 
-AllocSignal models each channel with the ADBUDG/Hill saturating response curve (Little 1970). For channel spend `x ≥ 0`:
+Alloc Signal models each channel with the ADBUDG/Hill saturating response curve (Little 1970). For channel spend `x ≥ 0`:
 
 ```
 R(x) = b + (a − b) · x^c / (h^c + x^c)

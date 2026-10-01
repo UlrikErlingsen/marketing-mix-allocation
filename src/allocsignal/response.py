@@ -1,11 +1,11 @@
-"""Saturating marketing-response curves used by AllocSignal.
+"""Saturating marketing-response curves used by Alloc Signal.
 
 The implementation follows the ADBUDG/Hill form used in marketing-science
 resource-allocation work::
 
     response(x) = b + (a - b) * x**c / (d + x**c)
 
-AllocSignal exposes ``half_saturation`` rather than ``d`` because it is easier to
+Alloc Signal exposes ``half_saturation`` rather than ``d`` because it is easier to
 elicit and explain.  The two parameterisations are identical when
 ``d = half_saturation**c``.  At the half-saturation spend, response is exactly
 the midpoint between the floor and ceiling.

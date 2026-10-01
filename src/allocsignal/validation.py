@@ -176,7 +176,7 @@ def prepare_panel_data(
     if missing_rows.any():
         raise DataProblem(
             f"The selected panel contains {int(missing_rows.sum()):,} incomplete row(s). "
-            "Remove or resolve them before estimation; AllocSignal does not silently impute panel data."
+            "Remove or resolve them before estimation; Alloc Signal does not silently impute panel data."
         )
     if work[[entity_column, time_column]].duplicated().any():
         duplicate_count = int(work[[entity_column, time_column]].duplicated(keep=False).sum())

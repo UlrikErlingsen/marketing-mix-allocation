@@ -1,6 +1,6 @@
-# Contributing to AllocSignal
+# Contributing to Alloc Signal
 
-Contributions that make AllocSignal clearer, safer, statistically sounder, or easier for marketers are welcome.
+Contributions that make Alloc Signal clearer, safer, statistically sounder, or easier for marketers are welcome.
 
 ## Development setup
 

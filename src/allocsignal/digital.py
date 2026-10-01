@@ -204,6 +204,6 @@ def audit_attribution(config: AttributionConfig) -> pd.DataFrame:
         "Decision boundary",
         "NO AUTOMATIC REALLOCATION",
         "Historical credit depends on past spend, targeting, availability, and measurement architecture.",
-        "Treat attribution as journey description; use AllocSignal curves and ExperimentSignal evidence for budget decisions.",
+        "Treat attribution as journey description; use Alloc Signal curves and Experiment Signal evidence for budget decisions.",
     )
     return pd.DataFrame(rows)

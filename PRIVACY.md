@@ -1,11 +1,11 @@
-# AllocSignal privacy notes
+# Alloc Signal privacy notes
 
-AllocSignal is designed to run locally. It includes no user accounts, advertising, product analytics, telemetry, external AI calls, or built-in research-data database.
+Alloc Signal is designed to run locally. It includes no user accounts, advertising, product analytics, telemetry, external AI calls, or built-in research-data database.
 
 ## When you run it on your computer
 
 - Uploaded files are read into the Streamlit process on that computer.
-- Analysis happens in memory; AllocSignal does not intentionally send channel plans or panel data to the project maintainer or a third-party API.
+- Analysis happens in memory; Alloc Signal does not intentionally send channel plans or panel data to the project maintainer or a third-party API.
 - Source files are never modified.
 - Exports are created only when requested.
 - Closing the process clears the in-memory session. The app itself does not persist an upload.
@@ -33,8 +33,8 @@ A hosted deployment changes the trust boundary: uploaded files travel to and are
 - hosting jurisdiction; and
 - privacy notices, consent, contracts, and applicable law.
 
-The AllocSignal code does not add persistent upload storage, but a host or its infrastructure may. Do not upload confidential, personal, or regulated data until the operator has documented those controls.
+The Alloc Signal code does not add persistent upload storage, but a host or its infrastructure may. Do not upload confidential, personal, or regulated data until the operator has documented those controls.
 
 ## Reporting a privacy or security concern
 
-Email [code.modular578@passmail.net](mailto:code.modular578@passmail.net) with the subject `[AllocSignal privacy]`. If private vulnerability reporting is enabled at the planned GitHub repository, its [private security advisory form](https://github.com/UlrikErlingsen/marketing-mix-allocation/security/advisories/new) is also suitable. Never put sensitive data or an exploitable report in a public issue.
+Email [code.modular578@passmail.net](mailto:code.modular578@passmail.net) with the subject `[Alloc Signal privacy]`. If private vulnerability reporting is enabled at the planned GitHub repository, its [private security advisory form](https://github.com/UlrikErlingsen/marketing-mix-allocation/security/advisories/new) is also suitable. Never put sensitive data or an exploitable report in a public issue.

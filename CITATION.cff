@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If AllocSignal supports your research or teaching, please cite this software and the original sources for the methods you use."
-title: "AllocSignal: Open Marketing Response and Resource Allocation"
+message: "If Alloc Signal supports your research or teaching, please cite this software and the original sources for the methods you use."
+title: "Alloc Signal: Open Marketing Response and Resource Allocation"
 type: software
 authors:
   - family-names: "Erlingsen"
