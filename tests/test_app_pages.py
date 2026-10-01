@@ -42,8 +42,8 @@ def test_channel_demo_loads_and_navigates_to_curve_setup() -> None:
 
     assert not app.exception, [error.value for error in app.exception]
     assert app.sidebar.radio[0].value == "1 · Curves & assumptions"
-    assert app.session_state["plan_source"] == "demo_channel_plan.csv"
-    assert len(app.session_state["plan_raw"]) == 6
+    assert app.session_state["alloc:plan_source"] == "demo_channel_plan.csv"
+    assert len(app.session_state["alloc:plan_raw"]) == 6
 
 
 def test_panel_demo_loads_and_navigates_to_evidence_setup() -> None:
@@ -53,22 +53,21 @@ def test_panel_demo_loads_and_navigates_to_evidence_setup() -> None:
 
     assert not app.exception, [error.value for error in app.exception]
     assert app.sidebar.radio[0].value == "3 · Panel evidence"
-    assert app.session_state["panel_source"] == "demo_marketing_panel.csv"
-    frame = app.session_state["panel_tables"][app.session_state["panel_table"]]
+    assert app.session_state["alloc:panel_source"] == "demo_marketing_panel.csv"
+    frame = app.session_state["alloc:panel_tables"][app.session_state["alloc:panel_table"]]
     assert len(frame) == 144
 
 
 def test_allocation_page_runs_three_decision_views_from_saved_plan() -> None:
     app = AppTest.from_file(APP, default_timeout=60)
-    app.session_state["channel_plan"] = prepare_channel_plan(pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv"))
-    app.session_state["planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
-    app.session_state["nav_target"] = "2 · Allocate & stress-test"
-    app.session_state["nav_epoch"] = 0
+    app.session_state["alloc:channel_plan"] = prepare_channel_plan(pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv"))
+    app.session_state["alloc:planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
+    app.session_state["alloc:nav_target"] = "2 · Allocate & stress-test"
     app.run()
     _button(app.button, "Run baseline, reallocation, sizing & sensitivity").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    results = app.session_state["allocation_results"]
+    results = app.session_state["alloc:allocation_results"]
     assert results is not None
     assert set(results) >= {"baseline", "constrained", "sized", "scenarios"}
     assert abs(results["constrained"].table["recommended_spend"].sum() - 590_000) < 0.1
@@ -78,22 +77,21 @@ def test_allocation_page_runs_three_decision_views_from_saved_plan() -> None:
 def test_anchor_calibration_updates_the_selected_channel_curve() -> None:
     plan = prepare_channel_plan(pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv"))
     app = AppTest.from_file(APP, default_timeout=90)
-    app.session_state["plan_raw"] = plan
-    app.session_state["channel_plan"] = plan
-    app.session_state["plan_source"] = "demo_channel_plan.csv"
-    app.session_state["plan_fingerprint"] = "test-plan"
-    app.session_state["planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
-    app.session_state["nav_target"] = "1 · Curves & assumptions"
-    app.session_state["nav_epoch"] = 0
+    app.session_state["alloc:plan_raw"] = plan
+    app.session_state["alloc:channel_plan"] = plan
+    app.session_state["alloc:plan_source"] = "demo_channel_plan.csv"
+    app.session_state["alloc:plan_fingerprint"] = "test-plan"
+    app.session_state["alloc:planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
+    app.session_state["alloc:nav_target"] = "1 · Curves & assumptions"
     app.run()
     _button(app.button, "Fit these four anchors into the channel curve").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    calibration = app.session_state["calibration_results"]["Paid search"]
+    calibration = app.session_state["alloc:calibration_results"]["Paid search"]
     assert calibration.success
     assert calibration.n_observations == 4
     assert calibration.rmse < 0.1
-    updated = app.session_state["channel_plan"].set_index("channel").loc["Paid search"]
+    updated = app.session_state["alloc:channel_plan"].set_index("channel").loc["Paid search"]
     assert updated["half_saturation"] == pytest.approx(calibration.curve.half_saturation)
 
 
@@ -104,7 +102,7 @@ def test_panel_demo_runs_pooled_fixed_and_random_effects() -> None:
     _button(app.button, "Validate panel & compare estimators").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    analysis = app.session_state["panel_analysis"]
+    analysis = app.session_state["alloc:panel_analysis"]
     assert analysis is not None
     assert analysis.diagnostics.n_observations == 144
     assert analysis.diagnostics.n_entities == 12
@@ -116,28 +114,26 @@ def test_panel_demo_runs_pooled_fixed_and_random_effects() -> None:
 
 def test_digital_demo_calculates_unit_economics_and_noncausal_audit() -> None:
     app = AppTest.from_file(APP, default_timeout=60)
-    app.session_state["nav_target"] = "4 · Digital economics & attribution"
-    app.session_state["nav_epoch"] = 0
+    app.session_state["alloc:nav_target"] = "4 · Digital economics & attribution"
     app.run()
     _button(app.button, "Load fictional digital campaign").click().run()
     _button(app.button, "Calculate economics & audit attribution").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    assert app.session_state["digital_result"] is not None
-    audit = app.session_state["attribution_audit"]
+    assert app.session_state["alloc:digital_result"] is not None
+    audit = app.session_state["alloc:attribution_audit"]
     assert audit.loc[audit["audit_area"] == "Incrementality", "status"].iloc[0] == "DESCRIPTIVE ONLY"
     assert len(app.download_button) == 3
 
 
 def test_schedule_page_runs_declared_arithmetic_with_defaults() -> None:
     app = AppTest.from_file(APP, default_timeout=60)
-    app.session_state["nav_target"] = "5 · Schedule & carryover"
-    app.session_state["nav_epoch"] = 0
+    app.session_state["alloc:nav_target"] = "5 · Schedule & carryover"
     app.run()
     _button(app.button, "Run the schedule arithmetic").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    results = app.session_state["schedule_results"]
+    results = app.session_state["alloc:schedule_results"]
     assert results is not None
     assert list(results["schedule"].index) == ["TV", "Search", "Social"]
     assert len(results["schedule"].columns) == 12

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "allocsignal"
 version = "1.1.1"
-description = "AllocSignal: open, local-first marketing response and resource allocation"
+description = "Alloc Signal: open, local-first marketing response and resource allocation"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "AGPL-3.0-or-later" }
@@ -33,17 +33,22 @@ dependencies = [
   "numpy>=1.24,<3",
   "openpyxl>=3.1,<4",
   "pandas>=2.0,<3",
-  "plotly>=5.18,<8",
   "scipy>=1.10,<2",
   "statsmodels>=0.14,<1",
-  "streamlit>=1.38,<2",
   "xlrd>=2.0,<3",
 ]
 
 [project.optional-dependencies]
+ui = [
+  "plotly>=5.18,<8",
+  "streamlit>=1.38,<2",
+]
 test = [
+  "build>=1.2,<2",
+  "plotly>=5.18,<8",
   "pytest>=8,<10",
   "ruff>=0.8,<1",
+  "streamlit>=1.38,<2",
 ]
 
 [project.urls]
@@ -53,6 +58,9 @@ Issues = "https://github.com/UlrikErlingsen/marketing-mix-allocation/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"allocsignal.ui" = ["assets/marks/*", "examples/*.csv"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

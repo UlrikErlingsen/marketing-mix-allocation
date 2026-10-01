@@ -1,15 +1,28 @@
-"""Regenerate AllocSignal's deterministic fictional CSV examples."""
+"""Regenerate Alloc Signal's deterministic fictional CSV examples.
+
+The app reads packaged copies from src/allocsignal/ui/examples/ (so the demos also work from a normal install, such
+as Signal Hub's); this script refreshes those copies from examples/ as well.
+"""
 
 from __future__ import annotations
 
 import csv
 from pathlib import Path
+import shutil
 
 import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
+PACKAGED_EXAMPLES = ROOT / "src" / "allocsignal" / "ui" / "examples"
+PACKAGED_FILES = (
+    "demo_channel_plan.csv",
+    "demo_marketing_panel.csv",
+    "demo_digital_economics.csv",
+    "channel_plan_template.csv",
+    "panel_template.csv",
+)
 SEED = 20260714
 
 
@@ -135,7 +148,10 @@ def main() -> None:
     EXAMPLES.mkdir(exist_ok=True)
     write_channel_plan()
     write_panel()
-    print(f"Wrote deterministic examples to {EXAMPLES}")
+    PACKAGED_EXAMPLES.mkdir(parents=True, exist_ok=True)
+    for name in PACKAGED_FILES:
+        shutil.copyfile(EXAMPLES / name, PACKAGED_EXAMPLES / name)
+    print(f"Wrote deterministic examples to {EXAMPLES} and copied them to {PACKAGED_EXAMPLES}")
 
 
 if __name__ == "__main__":

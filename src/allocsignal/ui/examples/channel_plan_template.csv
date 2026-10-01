@@ -1,0 +1,4 @@
+channel,current_spend,min_spend,max_spend,floor_response,ceiling_response,half_saturation,shape,long_run_multiplier,fixed
+Channel A,100000,25000,200000,0,600000,100000,1.20,1.00,false
+Channel B,75000,20000,150000,0,420000,80000,1.00,1.00,false
+Committed channel,50000,50000,50000,0,250000,70000,1.40,1.00,true

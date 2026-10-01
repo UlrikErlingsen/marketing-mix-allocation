@@ -17,12 +17,11 @@ def _button(buttons, label: str):
 
 def test_changed_chosen_budget_is_not_labelled_pure_reallocation_and_exports() -> None:
     app = AppTest.from_file(APP, default_timeout=120)
-    app.session_state["channel_plan"] = prepare_channel_plan(
+    app.session_state["alloc:channel_plan"] = prepare_channel_plan(
         pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv")
     )
-    app.session_state["planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
-    app.session_state["nav_target"] = "2 · Allocate & stress-test"
-    app.session_state["nav_epoch"] = 0
+    app.session_state["alloc:planning_assumptions"] = {"margin": 0.42, "base_response": 500.0}
+    app.session_state["alloc:nav_target"] = "2 · Allocate & stress-test"
     app.run()
 
     budget = next(
@@ -51,7 +50,7 @@ def test_time_controls_stay_in_model_tables_but_not_public_coefficient_chart() -
     _button(app.button, "Validate panel & compare estimators").click().run()
 
     assert not app.exception, [error.value for error in app.exception]
-    analysis = app.session_state["panel_analysis"]
+    analysis = app.session_state["alloc:panel_analysis"]
     assert "Conventional model-based covariance" in analysis.hausman.covariance_basis
     assert analysis.hausman.fixed_covariance is not None
     period_terms = {
