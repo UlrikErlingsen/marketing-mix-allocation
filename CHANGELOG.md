@@ -17,6 +17,7 @@ Signal brand refresh and Signal Hub entry point. The analysis, optimization, pan
 ### Signal Hub contract
 
 - `allocsignal.ui` exposes `APP_INFO` and `render()`, so Signal Hub can embed the app; `app.py` is now a thin standalone entry point.
+- Opens with the fictional demo preloaded: a new session starts with the fictional channel plan (already validated), regional panel and digital campaign loaded, so every page works without an upload. The demo buttons restore them, an upload replaces them, and the welcome page and README say so.
 - All session-state and widget keys are namespaced `alloc:` (including the page selector).
 - The fictional demos and templates ship as package data under `allocsignal/ui/examples/`, so they also work from a normal (non-editable) install; `examples/` keeps the user-facing copies.
 - `streamlit` and `plotly` moved to a `ui` extra (also in `test`); the analysis core installs without them. `requirements.txt` still lists everything.

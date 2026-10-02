@@ -26,13 +26,93 @@ def _button(buttons, label: str):
 
 
 @pytest.mark.parametrize("page", PAGES)
-def test_every_page_renders_without_data(page: str) -> None:
+def test_every_page_renders_with_the_preloaded_demo(page: str) -> None:
     app = AppTest.from_file(APP, default_timeout=45)
     app.run()
     app.sidebar.radio[0].set_value(page).run()
 
     assert not app.exception, [error.value for error in app.exception]
     assert app.sidebar.radio[0].value == page
+
+
+def test_fresh_session_opens_with_the_fictional_demos_preloaded() -> None:
+    app = AppTest.from_file(APP, default_timeout=60)
+    app.run()
+
+    assert not app.exception, [error.value for error in app.exception]
+    assert app.sidebar.radio[0].value == "Welcome"  # preloading does not navigate away from the landing page
+    body = "\n".join(str(item.value) for item in app.markdown)
+    assert "The fictional demo is already loaded." in body
+    assert app.session_state["alloc:plan_source"] == "demo_channel_plan.csv"
+    assert len(app.session_state["alloc:channel_plan"]) == 6  # validated, so pages 1 and 2 work without a click
+    assert app.session_state["alloc:panel_source"] == "demo_marketing_panel.csv"
+    assert app.session_state["alloc:digital_source"] == "demo_digital_economics.csv"
+
+    app.sidebar.radio[0].set_value("1 · Curves & assumptions").run()
+    assert not app.exception, [error.value for error in app.exception]
+    assert len(app.get("plotly_chart")) == 1  # the demo curves, with no upload or button press
+    assert not app.info
+
+    app.sidebar.radio[0].set_value("2 · Allocate & stress-test").run()
+    _button(app.button, "Run baseline, reallocation, sizing & sensitivity").click().run()
+    assert not app.exception, [error.value for error in app.exception]
+    assert app.session_state["alloc:allocation_results"] is not None
+
+    for page in ("3 · Panel evidence", "4 · Digital economics & attribution"):
+        app.sidebar.radio[0].set_value(page).run()
+        assert not app.exception, [error.value for error in app.exception]
+        assert not [item for item in app.info if "upload" in str(item.value).lower()], page
+
+
+UPLOAD_SCRIPT = """
+import streamlit as st
+from allocsignal.ui import app as ui_app
+
+
+class Upload:
+    name = "my_plan.csv"
+
+    def getvalue(self):
+        return st.session_state["test:upload_bytes"]
+
+
+if st.session_state.get("test:upload_bytes"):
+    ui_app._ensure_state()
+    ui_app._load_upload(Upload(), "Channel plan")
+ui_app.render()
+"""
+
+
+def test_an_upload_replaces_the_preloaded_demo() -> None:
+    app = AppTest.from_string(UPLOAD_SCRIPT, default_timeout=60)
+    app.run()
+    assert app.session_state["alloc:plan_source"] == "demo_channel_plan.csv"
+
+    upload = pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv").head(3)
+    app.session_state["test:upload_bytes"] = upload.to_csv(index=False).encode("utf-8")
+    app.run()
+
+    assert not app.exception, [error.value for error in app.exception]
+    assert app.session_state["alloc:plan_source"] == "my_plan.csv"
+    assert len(app.session_state["alloc:plan_raw"]) == 3
+    assert app.session_state["alloc:channel_plan"] is None  # an upload is validated by the user, not silently
+    assert app.sidebar.radio[0].value == "1 · Curves & assumptions"
+    # The other demo workspaces stay as they were; a later rerun does not reload the demo over the upload.
+    assert app.session_state["alloc:panel_source"] == "demo_marketing_panel.csv"
+    app.session_state["test:upload_bytes"] = b""
+    app.run()
+    assert app.session_state["alloc:plan_source"] == "my_plan.csv"
+
+
+def test_a_preset_plan_is_not_overwritten_by_the_preload() -> None:
+    plan = prepare_channel_plan(pd.read_csv(ROOT / "examples" / "demo_channel_plan.csv").head(2))
+    app = AppTest.from_file(APP, default_timeout=45)
+    app.session_state["alloc:channel_plan"] = plan
+    app.run()
+
+    assert not app.exception, [error.value for error in app.exception]
+    assert len(app.session_state["alloc:channel_plan"]) == 2
+    assert app.session_state["alloc:plan_raw"] is None
 
 
 def test_channel_demo_loads_and_navigates_to_curve_setup() -> None:

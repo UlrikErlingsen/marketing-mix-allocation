@@ -62,15 +62,17 @@ Where a sibling app covers it, use **[Experiment Signal](https://github.com/Ulri
 
 ## Try the demo in three minutes
 
-1. Start the app and click **Demo · channel plan** in the sidebar.
+The fictional demo is preloaded: the app opens with a synthetic six-channel plan, a 12-region panel, and a digital campaign already loaded, so every page works before you upload anything. The sidebar **Demo · channel plan** and **Demo · regional panel** buttons restore a demo (and jump to its page); an upload replaces it.
+
+1. Start the app and open **1 · Curves & assumptions**; the fictional channel plan is already validated and plotted.
 2. Review current, minimum, maximum, fixed-channel, saturation, half-saturation, and curve-shape assumptions.
 3. Compare the current plan with an optimized fixed-budget allocation. Read the change in contribution and each channel's marginal contribution from one more currency unit.
 4. Open the response curves and sensitivity view. Notice which recommendation changes when ceiling response or half-saturation is less favorable.
-5. Click **Demo · regional panel**. Select `region` as the entity, `period` as time, and `sales` as the outcome; compare pooled OLS, fixed effects, and random effects.
-6. Open **Digital economics & attribution** to calculate CPM/CPC/CTR/CVR/CPA and contribution economics, then review tracking and attribution warnings.
+5. Open **3 · Panel evidence** (the fictional regional panel is already loaded). Select `region` as the entity, `period` as time, and `sales` as the outcome; compare pooled OLS, fixed effects, and random effects.
+6. Open **Digital economics & attribution**, where the fictional campaign is already loaded, to calculate CPM/CPC/CTR/CVR/CPA and contribution economics, then review tracking and attribution warnings.
 7. Export the tables, assumptions, warnings, and model evidence needed to reproduce the discussion, as XLSX, CSV-ZIP, or JSON.
 
-The demos are synthetic teaching data. They describe no real company, campaign, channel, or market.
+The demos are fictional, synthetic teaching data. They describe no real company, campaign, channel, or market.
 
 ## Data contract
 

@@ -142,22 +142,23 @@ def _fingerprint(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def load_plan_demo() -> None:
+def _store_plan_demo() -> None:
+    """Put the fictional channel plan in state, already validated, so pages 1 and 2 work without a click."""
     path = EXAMPLES / "demo_channel_plan.csv"
     loaded = load_data(path)
+    raw = next(iter(loaded.tables.values()))
     st.session_state[k("plan_tables")] = None
     st.session_state[k("plan_table")] = None
-    st.session_state[k("plan_raw")] = next(iter(loaded.tables.values()))
+    st.session_state[k("plan_raw")] = raw
     st.session_state[k("plan_source")] = path.name
     st.session_state[k("plan_fingerprint")] = _fingerprint(path.read_bytes())
-    st.session_state[k("channel_plan")] = None
+    st.session_state[k("channel_plan")] = prepare_channel_plan(raw)
     st.session_state[k("allocation_results")] = None
     st.session_state[k("calibration_results")] = {}
     st.session_state[k("plan_editor_epoch")] = int(st.session_state.get(k("plan_editor_epoch"), 0)) + 1
-    go_to("1 · Curves & assumptions")
 
 
-def load_panel_demo() -> None:
+def _store_panel_demo() -> None:
     path = EXAMPLES / "demo_marketing_panel.csv"
     loaded = load_data(path)
     st.session_state[k("panel_tables")] = loaded.tables
@@ -165,6 +166,24 @@ def load_panel_demo() -> None:
     st.session_state[k("panel_source")] = path.name
     st.session_state[k("panel_fingerprint")] = _fingerprint(path.read_bytes())
     st.session_state[k("panel_analysis")] = None
+
+
+def _store_digital_demo() -> None:
+    path = EXAMPLES / "demo_digital_economics.csv"
+    st.session_state[k("digital_raw")] = pd.read_csv(path)
+    st.session_state[k("digital_source")] = path.name
+    st.session_state[k("digital_fingerprint")] = _fingerprint(path.read_bytes())
+    st.session_state[k("digital_result")] = None
+    st.session_state[k("attribution_audit")] = None
+
+
+def load_plan_demo() -> None:
+    _store_plan_demo()
+    go_to("1 · Curves & assumptions")
+
+
+def load_panel_demo() -> None:
+    _store_panel_demo()
     go_to("3 · Panel evidence")
 
 
@@ -199,6 +218,17 @@ def _load_upload(uploaded, purpose: str) -> None:
 def _ensure_state() -> None:
     for name, default in STATE_DEFAULTS:
         st.session_state.setdefault(k(name), default)
+    # First run of a session: preload the fictional demos so every page shows a working example without an upload.
+    # Each workspace is filled only while it is still empty; the demo buttons restore them and uploads replace them.
+    if st.session_state.get(k("demo_preloaded")):
+        return
+    st.session_state[k("demo_preloaded")] = True
+    if st.session_state[k("plan_raw")] is None and st.session_state[k("channel_plan")] is None:
+        _store_plan_demo()
+    if st.session_state[k("panel_tables")] is None:
+        _store_panel_demo()
+    if st.session_state[k("digital_raw")] is None:
+        _store_digital_demo()
 
 
 def _curve_response(row: pd.Series, spend: np.ndarray | float) -> float | np.ndarray:
@@ -330,6 +360,12 @@ def welcome_page() -> None:
         pills=["No account", "No telemetry", "Nonlinear response", "Panel-aware evidence", "Auditable exports"],
     )
     sig.note("warn", CAUTION)
+    sig.note(
+        "info",
+        "**The fictional demo is already loaded.** A six-channel plan, a 12-region panel, and a digital campaign—all "
+        "synthetic, describing no real company—fill every page, so you can open any step and try it now. The sidebar "
+        "demo buttons restore them; an upload replaces them.",
+    )
     sig.cards(
         [
             (
@@ -1012,13 +1048,7 @@ def digital_page() -> None:
     )
     controls = st.columns(2)
     if controls[0].button("Load fictional digital campaign", key=k("load_digital_demo")):
-        path = EXAMPLES / "demo_digital_economics.csv"
-        frame = pd.read_csv(path)
-        st.session_state[k("digital_raw")] = frame
-        st.session_state[k("digital_source")] = path.name
-        st.session_state[k("digital_fingerprint")] = _fingerprint(path.read_bytes())
-        st.session_state[k("digital_result")] = None
-        st.session_state[k("attribution_audit")] = None
+        _store_digital_demo()
     upload = controls[1].file_uploader(
         "Upload campaign or keyword table", type=["csv", "xlsx", "xls", "xlsm", "json"], key=k("digital_upload")
     )
@@ -2180,7 +2210,8 @@ def _sidebar() -> str:
     """Draw the sidebar lockup, demo loaders, upload controls and page selector; return the selected page."""
     sig.sidebar_brand(NS, SIDEBAR_TAGLINE)
     with st.sidebar:
-        st.markdown("### Start with a worked example")
+        st.markdown("### Fictional demo (preloaded)")
+        st.caption("Loaded when the app opens. Click to restore a demo and jump to its page.")
         if full_width(st.button, "Demo · channel plan", key=k("demo_channel_plan")):
             try:
                 load_plan_demo()
