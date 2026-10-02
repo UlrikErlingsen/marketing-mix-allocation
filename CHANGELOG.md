@@ -12,6 +12,7 @@ Signal brand refresh and Signal Hub entry point. The analysis, optimization, pan
 - The app uses the shared `signal_theme` module (Organic Signal design, Decide family colour `#4f80a2`, Figtree): sidebar lockup, masthead, hero, cards, notes, footer, the per-app Plotly template (charts shown through `sig.chart`) and the mark as favicon replace the pasted styles. Chart series map to the Decide colorway and neutral tokens with the same meaning as before.
 - New banner, social preview and marks in `assets/`; the old banner SVG is removed. `.streamlit/config.toml` uses the family colours.
 - README follows the Signal template; bug-report and feature-request issue templates added.
+- Embedded Figtree font, no Google Fonts request: the re-synced `signal_theme` loads Figtree from the new synced `signal_font` module, so the app makes no outbound font request; the colorway now uses a per-family contrast order.
 
 ### Signal Hub contract
 
