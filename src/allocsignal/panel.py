@@ -7,7 +7,7 @@ objects labels a coefficient as a causal effect.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Mapping, Sequence
 import warnings as python_warnings
 
@@ -17,9 +17,42 @@ from scipy import stats
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+from . import limits
+
 
 class PanelValidationError(ValueError):
     """Raised when data do not form an estimable entity-by-time panel."""
+
+
+# Time fixed effects add one dense indicator column per period, and the estimators keep several copies of the design.
+# Above this many design cells (rows x (predictors + periods)) the models are fitted on a seeded random sample of
+# whole entities, a visible approximation recorded in the warnings and exports. It never applies without time effects.
+TIME_EFFECTS_APPROXIMATE_CELLS = 12_000_000
+SAMPLE_SEED = 20261003
+
+
+def _sample_entities_for_time_effects(
+    data: pd.DataFrame, entity_col: str, time_col: str, n_predictors: int
+) -> tuple[pd.DataFrame, str | None]:
+    periods = int(data[time_col].nunique())
+    width = n_predictors + periods
+    if len(data) * width <= TIME_EFFECTS_APPROXIMATE_CELLS:
+        return data, None
+    entities = pd.unique(data[entity_col])
+    rows_per_entity = len(data) / len(entities)
+    target = int(TIME_EFFECTS_APPROXIMATE_CELLS / width / rows_per_entity)
+    target = max(2, min(len(entities), target))
+    if target >= len(entities):
+        return data, None
+    keep = np.random.default_rng(SAMPLE_SEED).choice(entities, size=target, replace=False)
+    sample = data.loc[data[entity_col].isin(keep)]
+    note = (
+        f"Approximation: time fixed effects need one indicator column per period ({periods:,}), so to keep the dense "
+        f"model near {TIME_EFFECTS_APPROXIMATE_CELLS:,} cells every estimator here was fitted on a seeded random sample "
+        f"of {target:,} of {len(entities):,} entities ({len(sample):,} of {len(data):,} rows), each with its full "
+        "history. Switch time effects off to fit every row."
+    )
+    return sample, note
 
 
 @dataclass(frozen=True)
@@ -597,9 +630,27 @@ def analyze_panel(
 ) -> PanelAnalysis:
     """Run validation, three estimators, Hausman, and aggregation diagnostics."""
 
+    design_cap = limits.max_panel_design_cells()
+    if design_cap is not None:
+        periods = int(data[time_col].nunique()) if time_effects and time_col in data.columns else 1
+        cells = len(data) * (len(list(predictors)) + periods)
+        if cells > design_cap:
+            raise PanelValidationError(
+                limits.demo_limit(
+                    f"The public demo fits panel models of at most {design_cap:,} design cells "
+                    f"(rows x predictors{' and period indicators' if time_effects else ''}); this one needs {cells:,}."
+                )
+            )
+    sample_note = None
+    if time_effects and isinstance(data, pd.DataFrame) and {entity_col, time_col} <= set(data.columns):
+        data, sample_note = _sample_entities_for_time_effects(
+            data, entity_col, time_col, len(_normalise_predictors(predictors))
+        )
     prepared, diagnostics, predictor_list = _validated_inputs(
         data, entity_col, time_col, outcome_col, predictors, confidence_level
     )
+    if sample_note:
+        diagnostics = replace(diagnostics, warnings=(sample_note, *diagnostics.warnings))
     pooled = _fit_pooled_prepared(
         prepared,
         diagnostics,
@@ -761,7 +812,8 @@ def _diagnose_prepared(
             raise PanelValidationError(f"{column!r} has no usable overall variation.")
         within_identified = within_ss > tolerance
         between_identified = between_ss > tolerance
-        changes = data.groupby(entity_col, observed=True, sort=False)[column].agg(lambda series: float(series.max() - series.min()))
+        grouped_column = data.groupby(entity_col, observed=True, sort=False)[column]
+        changes = (grouped_column.max() - grouped_column.min()).astype(float)
         entity_scale = max(1.0, float(np.max(np.abs(values))))
         entities_with_change = float((changes > np.finfo(float).eps * entity_scale * 100).mean())
 
@@ -878,26 +930,52 @@ def _design_matrix(
     return design, time_terms
 
 
+def _reduced_columns(matrix: np.ndarray) -> np.ndarray:
+    """A k x k matrix with the same column norms and, for every subset of columns, the same singular values.
+
+    For a tall n x k design X = QR, so any subset of columns of R has the singular values of the same subset of X.
+    Rank checks then cost k x k work instead of re-decomposing millions of rows for every column.
+    """
+    if matrix.shape[0] > matrix.shape[1]:
+        return np.linalg.qr(matrix, mode="r")
+    return matrix
+
+
+def _matrix_rank(matrix: np.ndarray) -> int:
+    """``np.linalg.matrix_rank`` with its default tolerance (based on the original row count), computed via QR."""
+    if matrix.size == 0:
+        return 0
+    singular = np.linalg.svd(_reduced_columns(matrix), compute_uv=False)
+    tolerance = singular.max() * max(matrix.shape) * np.finfo(float).eps
+    return int(np.count_nonzero(singular > tolerance))
+
+
 def _select_independent_columns(
     design: pd.DataFrame,
     *,
     allow_empty: bool = False,
 ) -> tuple[pd.DataFrame, tuple[str, ...]]:
     selected: list[str] = []
+    selected_positions: list[int] = []
     dropped: list[str] = []
     current_rank = 0
-    for column in design.columns:
-        values = design[column].to_numpy(dtype=float)
-        absolute_scale = max(1.0, float(np.max(np.abs(design.to_numpy(dtype=float)))))
-        zero_tolerance = np.finfo(float).eps * max(design.shape) * absolute_scale * 100
-        if float(np.linalg.norm(values)) <= zero_tolerance:
+    matrix = design.to_numpy(dtype=float)
+    n_rows = matrix.shape[0]
+    absolute_scale = max(1.0, float(np.max(np.abs(matrix)))) if matrix.size else 1.0
+    zero_tolerance = np.finfo(float).eps * max(design.shape) * absolute_scale * 100
+    reduced = _reduced_columns(matrix) if matrix.size else matrix
+    for position, column in enumerate(design.columns):
+        if float(np.linalg.norm(reduced[:, position])) <= zero_tolerance:
             dropped.append(column)
             continue
-        candidate_columns = [*selected, column]
-        candidate = design[candidate_columns].to_numpy(dtype=float)
-        candidate_rank = int(np.linalg.matrix_rank(candidate))
+        candidate = reduced[:, [*selected_positions, position]]
+        singular = np.linalg.svd(candidate, compute_uv=False)
+        # Same tolerance as np.linalg.matrix_rank on the n-row candidate design.
+        tolerance = singular.max() * max(n_rows, candidate.shape[1]) * np.finfo(float).eps
+        candidate_rank = int(np.count_nonzero(singular > tolerance))
         if candidate_rank > current_rank:
             selected.append(column)
+            selected_positions.append(position)
             current_rank = candidate_rank
         else:
             dropped.append(column)
@@ -914,7 +992,7 @@ def _fit_with_covariance(
     *,
     model_based: bool = False,
 ) -> tuple[object, str, tuple[str, ...]]:
-    if len(outcome) <= np.linalg.matrix_rank(design.to_numpy(dtype=float)):
+    if len(outcome) <= _matrix_rank(design.to_numpy(dtype=float)):
         raise PanelValidationError("The model has no residual degrees of freedom; reduce controls or add observations.")
     model = sm.OLS(outcome.astype(float), design.astype(float), missing="raise")
     warning_messages: list[str] = []
@@ -1160,7 +1238,7 @@ def _fit_random_prepared(
         within_dropped = tuple(within_design.columns)
         within_design = pd.DataFrame(index=data.index)
     within_outcome = outcome - outcome.groupby(entity, observed=True, sort=False).transform("mean")
-    within_rank = 0 if within_design.empty else int(np.linalg.matrix_rank(within_design.to_numpy(dtype=float)))
+    within_rank = 0 if within_design.empty else _matrix_rank(within_design.to_numpy(dtype=float))
     sigma_e_df = diagnostics.n_observations - diagnostics.n_entities - within_rank
     if sigma_e_df <= 0:
         raise PanelValidationError("Too few residual degrees of freedom to estimate the random-effects variance components.")

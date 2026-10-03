@@ -5,7 +5,7 @@ Alloc Signal accepts two separate table types:
 1. a **channel plan** for response curves and allocation; or
 2. an **entity-period panel** for historical evidence.
 
-CSV, `.xlsx`, `.xls`, `.xlsm`, and JSON tables are supported. Keep a simple rectangular table with one header row, unique column names, and no merged cells or subtotal rows.
+CSV, `.xlsx`, `.xls`, `.xlsm`, and JSON tables are supported. Run locally there is no built-in size, row or cell limit (memory is the limit); the public demo (`SIGNAL_PUBLIC=1`) allows 200 MB per file, 30 MB per JSON file, 500,000 rows and 8,000,000 cells. Keep a simple rectangular table with one header row, unique column names, and no merged cells or subtotal rows.
 
 ## Channel-plan schema
 

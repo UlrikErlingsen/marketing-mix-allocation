@@ -2,6 +2,24 @@
 
 All notable changes to Alloc Signal are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-10-03
+
+Larger datasets for large marketing organisations. The optimizer, response curves, panel estimators, decision rules and export tables are unchanged; on the fictional demos every estimate is identical to 1.2.0.
+
+### Larger datasets
+
+- Larger datasets: run locally, Alloc Signal has no built-in limit on file size, rows, cells or panel size any more (it was 200 MB, or up to 500 MB via `ALLOCSIGNAL_MAX_UPLOAD_MB`, 30 MB for JSON, 250 MB unzipped workbooks, 500,000 rows and 8,000,000 cells); memory is the limit, and running out of memory is reported as a plain message. The public demo (`SIGNAL_PUBLIC=1`) keeps those values as demo limits, plus panel models of at most 10,000,000 design cells, all in the new `allocsignal/limits.py`; its messages say the downloaded app has none. `ALLOCSIGNAL_MAX_UPLOAD_MB` is no longer read in code; it only sets the launchers' Streamlit upload cap.
+- CSV files are read with pandas' fast C parser after sniffing the delimiter from the header line (it used the slow Python parser in 25,000-row chunks), and uploaded tables are no longer copied after parsing. A 5,000,000-row, 330 MB panel reads in about 3 s.
+- Panel estimators: the independent-column check and the rank checks run on the QR factor of the design (same tolerance as before) instead of re-decomposing every row for every column, and the per-entity change count is vectorized. A 200,000-row panel with 100 weekly time effects took 323 s and now takes about 33 s; 5,000,000 rows without time effects take about 45 s at about 4.8 GB peak memory.
+- Time fixed effects add one dense indicator column per period. Above 12,000,000 design cells (rows × (predictors + periods)) the estimators are fitted on a seeded random sample of whole entities, a visible approximation stated first in the panel warnings and in every export; without time effects every row is used.
+- On-screen digital-economics rows show at most 1,000 rows with a note. Exports hold every row: CSV and JSON always, while the Excel workbook lists tables above 2,000,000 cells on a "Read me" sheet (Excel stops at 1,048,576 rows per sheet). JSON tables above 100,000 rows are written as compact record arrays, and formula neutralisation runs once per distinct value. Above 100,000 exported rows the evidence files are prepared on request instead of on every page view.
+- Column roles on the panel page are computed once per loaded table; reading, panel fitting and export preparation show a spinner.
+- Streamlit's upload cap is 10,000 MB: `.streamlit/config.toml` (synced from Signal Hub), both launchers (`run_app.bat` now honors `ALLOCSIGNAL_MAX_UPLOAD_MB` like `run_app.command`, default 10000) and the Dockerfile (`STREAMLIT_SERVER_MAX_UPLOAD_SIZE=10000`).
+
+### Suite
+
+- Suite: Rival, Reach, Learn and Blueprint Signal added to the suite table.
+
 ## 1.2.0 — 2026-10-02
 
 Signal brand refresh and Signal Hub entry point. The analysis, optimization, panel estimators, data contracts and export tables are unchanged (apart from the product label in the manifest).

@@ -138,6 +138,62 @@ def go_to(page_name: str) -> None:
     st.session_state[k("nav_target")] = page_name
 
 
+# On-screen tables show at most this many rows; computations and every export use the full data.
+DISPLAY_ROWS = 1_000
+# Above this many exported rows the evidence files are built on request instead of on every page view.
+LAZY_EXPORT_ROWS = 100_000
+_RESULT_STATE_KEYS = (
+    "allocation_results", "attribution_audit", "calibration_results", "channel_plan", "digital_result",
+    "panel_analysis", "panel_prepared", "planning_assumptions", "schedule_results",
+)
+
+
+def _display(frame: pd.DataFrame, what: str = "rows") -> pd.DataFrame:
+    """The first DISPLAY_ROWS rows for the browser, with a visible note when the table is longer."""
+    if len(frame) <= DISPLAY_ROWS:
+        return frame
+    st.caption(f"Showing the first {DISPLAY_ROWS:,} of {len(frame):,} {what}; calculations and downloads use all of them.")
+    return frame.head(DISPLAY_ROWS)
+
+
+def _column_profile(frame: pd.DataFrame, scope: str) -> dict[str, object]:
+    """Numeric columns and distinct counts, computed once per loaded table instead of on every rerun."""
+    marker = (scope, id(frame), len(frame))
+    cached = st.session_state.get(k("column_profile"))
+    if cached is None or cached[0] != marker:
+        profile = {
+            "numeric": numeric_candidates(frame),
+            "distinct": {str(column): int(frame[column].nunique(dropna=True)) for column in frame.columns},
+        }
+        cached = (marker, profile)
+        st.session_state[k("column_profile")] = cached
+    return cached[1]
+
+
+def _evidence_downloads(
+    columns, tables: dict[str, pd.DataFrame], metadata: dict | None, name: str, prefix: str
+) -> tuple[bytes, bytes, bytes] | None:
+    """Excel, CSV ZIP and JSON downloads; for long tables they are prepared once on request, then cached."""
+    rows = sum(len(frame) for frame in tables.values())
+    if rows <= LAZY_EXPORT_ROWS:
+        return results_to_excel(tables), tables_to_csv_zip(tables), results_to_json(tables, metadata)
+    # Long tables: build once per set of results. The result objects in session state change only when re-run.
+    results = tuple(id(st.session_state.get(k(name))) for name in _RESULT_STATE_KEYS)
+    signature = (prefix, rows, tuple(tables), json.dumps(metadata or {}, default=str, sort_keys=True), results)
+    cached = st.session_state.get(k(f"{prefix}_downloads"))
+    if cached is None or cached[0] != signature:
+        if not columns[0].button(
+            f"Prepare downloads · {rows:,} rows", key=k(f"{prefix}_prepare_downloads"),
+            help="Every export holds the full data, so preparing them takes a little while for long tables.",
+        ):
+            return None
+        with st.spinner("Preparing the evidence files…"):
+            cached = (signature, results_to_excel(tables), tables_to_csv_zip(tables), results_to_json(tables, metadata))
+        st.session_state[k(f"{prefix}_downloads")] = cached
+    _, excel, csv_zip, json_bytes = cached
+    return excel, csv_zip, json_bytes
+
+
 def _fingerprint(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
@@ -193,7 +249,8 @@ def _load_upload(uploaded, purpose: str) -> None:
     seen = "plan_upload_seen" if purpose == "Channel plan" else "panel_upload_seen"
     if st.session_state.get(k(seen)) == fingerprint:
         return
-    loaded = load_data(raw, name=uploaded.name)
+    with st.spinner("Reading the file…"):
+        loaded = load_data(raw, name=uploaded.name)
     st.session_state[k(seen)] = fingerprint
     if purpose == "Channel plan":
         st.session_state[k("plan_tables")] = loaded.tables
@@ -891,7 +948,8 @@ def panel_page() -> None:
         key=k(f"panel_outcome_{scope}"),
     )
     excluded = {entity, time, outcome}
-    numeric = numeric_candidates(frame, excluded)
+    profile = _column_profile(frame, scope)
+    numeric = [column for column in profile["numeric"] if column not in excluded]
     default_predictors = roles.get("numeric_predictors") or [
         column for column in numeric if any(token in column.lower() for token in ("search", "display", "media", "spend", "price", "distribution"))
     ]
@@ -905,7 +963,7 @@ def panel_page() -> None:
     )
     categoricals = [
         column for column in columns
-        if column not in excluded | set(numeric_predictors) and 2 <= frame[column].nunique(dropna=True) <= 25
+        if column not in excluded | set(numeric_predictors) and 2 <= profile["distinct"][column] <= 25
     ]
     categorical_predictors = st.multiselect(
         "Categorical controls (optional; reference-level dummies are created)",
@@ -936,15 +994,16 @@ def panel_page() -> None:
                 numeric_predictors=numeric_predictors,
                 categorical_predictors=categorical_predictors,
             )
-            analysis = analyze_panel(
-                prepared.frame,
-                entity_col=prepared.entity_column,
-                time_col=prepared.time_column,
-                outcome_col=prepared.outcome_column,
-                predictors=prepared.predictors,
-                time_effects=time_effects,
-                cluster_robust=cluster_robust,
-            )
+            with st.spinner("Validating the panel and fitting three estimators…"):
+                analysis = analyze_panel(
+                    prepared.frame,
+                    entity_col=prepared.entity_column,
+                    time_col=prepared.time_column,
+                    outcome_col=prepared.outcome_column,
+                    predictors=prepared.predictors,
+                    time_effects=time_effects,
+                    cluster_robust=cluster_robust,
+                )
             st.session_state[k("panel_prepared")] = prepared
             st.session_state[k("panel_analysis")] = analysis
             st.session_state[k("panel_roles")] = {
@@ -1187,7 +1246,7 @@ def digital_page() -> None:
     for warning in result.warnings:
         st.warning(warning)
     st.markdown("#### Campaign and keyword economics")
-    full_width(st.dataframe, result.rows.round(4), hide_index=True)
+    full_width(st.dataframe, _display(result.rows).round(4), hide_index=True)
     st.caption("Break-even CPC = observed CVR × contribution margin. Break-even CPA = contribution margin per conversion.")
     st.markdown("#### Attribution assumption audit")
     full_width(st.dataframe, attribution, hide_index=True)
@@ -1199,16 +1258,20 @@ def digital_page() -> None:
         "causal_status": "descriptive observed economics; no incremental lift claim",
     }
     d1, d2, d3 = st.columns(3)
+    prepared_files = _evidence_downloads((d1, d2, d3), tables, metadata, "digital", "digital")
+    if prepared_files is None:
+        return
+    excel, csv_zip, json_bytes = prepared_files
     d1.download_button(
-        "Download Excel evidence", results_to_excel(tables), "allocsignal-digital-evidence.xlsx",
+        "Download Excel evidence", excel, "allocsignal-digital-evidence.xlsx",
         key=k("download_digital_excel"),
     )
     d2.download_button(
-        "Download JSON evidence", results_to_json(tables, metadata), "allocsignal-digital-evidence.json",
+        "Download JSON evidence", json_bytes, "allocsignal-digital-evidence.json",
         key=k("download_digital_json"),
     )
     d3.download_button(
-        "Download CSV bundle", tables_to_csv_zip(tables), "allocsignal-digital-evidence.zip",
+        "Download CSV bundle", csv_zip, "allocsignal-digital-evidence.zip",
         key=k("download_digital_csv"),
     )
 
@@ -1779,7 +1842,8 @@ def _panel_fitted_residuals(analysis, prepared) -> pd.DataFrame:
     if prepared is not None:
         frame = prepared.frame.reset_index(drop=True)
         keys = [prepared.entity_column, prepared.time_column, prepared.outcome_column]
-        result = frame[keys].copy()
+        # Align on the rows the models used (all rows, or the sampled entities of a time-effects approximation).
+        result = frame.loc[analysis.pooled.fitted_values.index, keys].reset_index(drop=True)
         result = result.rename(columns={prepared.outcome_column: "observed_outcome"})
     else:
         result = pd.DataFrame({"observation": np.arange(nobs)})
@@ -2077,10 +2141,14 @@ def decision_page() -> None:
     st.subheader("Download the evidence—not just the answer")
     export_tables = {"Analysis manifest": _manifest_table(metadata), **export_tables}
     downloads = st.columns(3)
+    prepared_files = _evidence_downloads(downloads, export_tables, metadata, "evidence", "evidence")
+    if prepared_files is None:
+        return
+    excel, csv_zip, json_bytes = prepared_files
     full_width(
         downloads[0].download_button,
         "Excel evidence pack",
-        results_to_excel(export_tables),
+        excel,
         "allocsignal_evidence.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key=k("download_evidence_excel"),
@@ -2088,7 +2156,7 @@ def decision_page() -> None:
     full_width(
         downloads[1].download_button,
         "CSV evidence ZIP",
-        tables_to_csv_zip(export_tables),
+        csv_zip,
         "allocsignal_evidence_csv.zip",
         "application/zip",
         key=k("download_evidence_csv"),
@@ -2096,7 +2164,7 @@ def decision_page() -> None:
     full_width(
         downloads[2].download_button,
         "JSON + audit trail",
-        results_to_json(export_tables, metadata),
+        json_bytes,
         "allocsignal_evidence.json",
         "application/json",
         key=k("download_evidence_json"),

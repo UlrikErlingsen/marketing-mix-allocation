@@ -76,7 +76,13 @@ The demos are fictional, synthetic teaching data. They describe no real company,
 
 ## Data contract
 
-Alloc Signal accepts two separate table types. CSV, Excel, and JSON are supported; uploads are capped at 200 MB by default (`ALLOCSIGNAL_MAX_UPLOAD_MB`, at most 500), JSON at 30 MB, and tables at 500,000 rows.
+Alloc Signal accepts two separate table types. CSV, Excel, and JSON are supported.
+
+### Data limits
+
+Run on your own computer (standalone, inside a local Signal Hub or on an internal company server), Alloc Signal has **no built-in limit** on file size, rows, cells or panel size: the computer's memory is the limit, and running out of memory is reported as a plain message. A 5,000,000-row store × week panel (about 330 MB; 50,000 stores × 100 weeks, five predictors) reads in about 3 s and the three panel estimators with the Hausman test take about 45 s at roughly 4.8 GB peak memory. One visible approximation remains: time fixed effects add a dense indicator column per period, so when rows × (predictors + periods) exceeds 12,000,000 cells the estimators are fitted on a seeded random sample of whole entities, and a warning in the app and the exports says how many entities and rows were used; without time effects every row is used. On-screen tables show at most 1,000 rows with a note; CSV and JSON exports hold every row, and the Excel workbook lists any table above 2,000,000 cells on a "Read me" sheet instead of including it (Excel sheets stop at 1,048,576 rows).
+
+The public online demo (`SIGNAL_PUBLIC=1`) protects its shared server with demo limits: 200 MB per file, 30 MB per JSON file, workbooks that unzip to at most 250 MB, 500,000 rows and 8,000,000 cells per file, and panel models of at most 10,000,000 design cells. The downloaded app has none of these.
 
 ### Planning data
 
@@ -160,7 +166,7 @@ Excel, CSV-ZIP and JSON exports include:
 - panel structure, assumptions, model comparison and metrics, coefficients, within/between slopes, variation, VIF, fitted values and residuals, and the Hausman test with its covariance basis;
 - the independence assumption, causal status, warnings, and notes.
 
-The digital workspace and the schedule page have their own evidence and CSV downloads. Exports are created only when requested and source files are never modified. Exported text is neutralised against spreadsheet-formula interpretation.
+The digital workspace and the schedule page have their own evidence and CSV downloads. For more than 100,000 exported rows the files are prepared on request. Source files are never modified. Exported text is neutralised against spreadsheet-formula interpretation.
 
 ## Run locally
 
@@ -177,7 +183,7 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-The launchers prefer local port 8593 and accept `ALLOCSIGNAL_PORT`, `ALLOCSIGNAL_MAX_UPLOAD_MB`, `ALLOCSIGNAL_NO_BROWSER` and `ALLOCSIGNAL_DEBUG`.
+The launchers prefer local port 8593 and accept `ALLOCSIGNAL_PORT`, `ALLOCSIGNAL_MAX_UPLOAD_MB` (Streamlit's upload transport cap in MB, default 10000, matching `.streamlit/config.toml`; the app adds no limit of its own), `ALLOCSIGNAL_NO_BROWSER` and `ALLOCSIGNAL_DEBUG`.
 
 ### Docker
 
@@ -186,7 +192,7 @@ docker build -t allocsignal .
 docker run --rm -p 8593:8593 allocsignal
 ```
 
-Then open http://127.0.0.1:8593. The container runs the app as a non-root user. This repository does not promise a hosted public instance.
+Then open http://127.0.0.1:8593. The container runs the app as a non-root user. The image sets `STREAMLIT_SERVER_MAX_UPLOAD_SIZE=10000`; pass a smaller value with `-e STREAMLIT_SERVER_MAX_UPLOAD_SIZE=…`, and `-e SIGNAL_PUBLIC=1` to apply the demo limits, when hosting a shared copy. This repository does not promise a hosted public instance.
 
 ## Privacy
 

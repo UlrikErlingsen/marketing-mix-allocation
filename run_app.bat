@@ -35,13 +35,14 @@ if not exist ".venv\.allocsignal-requirements-%REQ_HASH%" (
 
 if not defined ARROW_DEFAULT_MEMORY_POOL set "ARROW_DEFAULT_MEMORY_POOL=system"
 if not defined ALLOCSIGNAL_PORT set "ALLOCSIGNAL_PORT=8593"
+if not defined ALLOCSIGNAL_MAX_UPLOAD_MB set "ALLOCSIGNAL_MAX_UPLOAD_MB=10000"
 
 echo Starting Alloc Signal at http://127.0.0.1:%ALLOCSIGNAL_PORT% ...
 ".venv\Scripts\python.exe" -m streamlit run app.py ^
   --server.headless=false ^
   --server.address=127.0.0.1 ^
   --server.port=%ALLOCSIGNAL_PORT% ^
-  --server.maxUploadSize=200 ^
+  --server.maxUploadSize=%ALLOCSIGNAL_MAX_UPLOAD_MB% ^
   --server.fileWatcherType=none ^
   --browser.gatherUsageStats=false
 

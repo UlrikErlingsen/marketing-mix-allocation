@@ -21,4 +21,4 @@ Reports are reviewed on a best-effort basis; this volunteer project does not pro
 
 Alloc Signal reads tabular CSV, Excel, and JSON. It does not accept serialized Python models or intentionally execute spreadsheet macros. Safe loaders should limit file size, workbook expansion, row count, and total cells; spreadsheet exports should neutralize formula-like text. The Docker image runs as an unprivileged user. These controls reduce risk but do not make an internet deployment safe by themselves.
 
-Anyone exposing the app over a network remains responsible for authentication, TLS, network isolation, dependency updates, logging, secrets, backups, upload limits, retention, and incident response. Read [PRIVACY.md](PRIVACY.md) before accepting uploads.
+Anyone exposing the app over a network remains responsible for authentication, TLS, network isolation, dependency updates, logging, secrets, backups, upload limits, retention, and incident response. Run locally the app has no built-in data limits; set `SIGNAL_PUBLIC=1` on a shared server to apply the demo limits in `src/allocsignal/limits.py`. Read [PRIVACY.md](PRIVACY.md) before accepting uploads.

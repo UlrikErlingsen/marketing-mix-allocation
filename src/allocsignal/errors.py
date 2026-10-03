@@ -11,5 +11,9 @@ def friendly_message(exc: Exception) -> str:
     """Return a useful public message without exposing implementation details."""
     if isinstance(exc, (DataProblem, ValueError)):
         return str(exc)
+    if isinstance(exc, MemoryError):
+        from .limits import MEMORY_MESSAGE
+
+        return MEMORY_MESSAGE
     return "Alloc Signal could not finish that step. Check the data and assumptions, then try again."
 
